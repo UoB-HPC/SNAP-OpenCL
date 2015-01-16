@@ -126,7 +126,7 @@ sweep_kernels.h:	sweep_kernels.cl
 # Cleanup
 #
 clean:
-	rm -f *.o *.mod *.bc
+	rm -f *.o *.mod *.bc sweep_kernels.h
 
 #
 # Count lines of code
