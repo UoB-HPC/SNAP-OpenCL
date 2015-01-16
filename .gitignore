@@ -4,4 +4,8 @@
 *.mod
 
 # Binary files
+stringify_opencl
 snap
+
+# Source files
+src/sweep_kernels.h

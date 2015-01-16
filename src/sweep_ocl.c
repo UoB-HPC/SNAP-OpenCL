@@ -8,6 +8,20 @@
 #include <CL/cl.h>
 #endif
 
+// Include the kernel strings
+#include "sweep_kernels.h"
+
+
+// Global OpenCL handles (context, queue, etc.)
+cl_device_id device;
+cl_context context;
+cl_command_queue queue;
+cl_program program;
+
+// OpenCL kernels
+cl_kernel k_sweep;
+
+
 // Check OpenCL errors and exit if no success
 void check_error(cl_int err, char *msg)
 {
@@ -18,10 +32,20 @@ void check_error(cl_int err, char *msg)
     }
 }
 
-// Global OpenCL handles (context, queue, etc.)
-cl_device_id device;
-cl_context context;
-cl_command_queue queue;
+// Check for OpenCL build errors and display build messages
+void check_build_error(cl_int err, char *msg)
+{
+    if (err == CL_BUILD_PROGRAM_FAILURE)
+    {
+        char *build_log = (char*)malloc(sizeof(char)*2048);
+        clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, sizeof(char)*2048, build_log, NULL);
+        fprintf(stderr, "Error: %d\n", err);
+        fprintf(stderr, "Build log:\n%s\n", build_log);
+        free(build_log);
+    }
+    check_error(err, msg);
+}
+
 
 void opencl_setup_(void)
 {
@@ -64,6 +88,19 @@ void opencl_setup_(void)
     // Create command queue
     queue = clCreateCommandQueue(context, device, 0, &err);
     check_error(err, "Creating command queue");
+
+    // Create program
+    program = clCreateProgramWithSource(context, 1, &sweep_kernels_ocl, NULL, &err);
+    check_error(err, "Creating program");
+
+    // Build program
+    char *options = "";
+    err = clBuildProgram(program, 1, &device, options, NULL, NULL);
+    check_build_error(err, "Building program");
+
+    // Create kernels
+    k_sweep = clCreateKernel(program, "sweep", &err);
+    check_error(err, "Creating kernel sweep");
 
     free(platforms);
     printf("done\n");

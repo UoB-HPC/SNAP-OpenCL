@@ -101,7 +101,6 @@ output.o :	global.o geom.o sn.o data.o control.o utils.o solvar.o \
 time.o :	global.o
 mms.o:	global.o geom.o sn.o data.o control.o plib.o
 
-
 #
 # Fortran rule
 #
@@ -113,6 +112,15 @@ mms.o:	global.o geom.o sn.o data.o control.o plib.o
 #
 %.o:	%.c
 	$(CC) $(CFLAGS) -c $< $(OPENCL)
+
+sweep_ocl.o: sweep_kernels.h
+
+
+#
+# Create OpenCL kernel header files
+#
+sweep_kernels.h:	sweep_kernels.cl
+	./stringify_opencl $< $@
 
 #
 # Cleanup
