@@ -100,6 +100,14 @@ SUBROUTINE translv
 
   CALL wtime ( t2 )
   tparam = tparam + t2 - t1
+
+!_______________________________________________________________________
+!
+! Call for setup of OpenCL context
+!_______________________________________________________________________
+
+  CALL opencl_setup
+
 !_______________________________________________________________________
 !
 ! The time loop solves the problem for nsteps. If static, there is
@@ -208,6 +216,13 @@ SUBROUTINE translv
       IF ( otrdone ) EXIT outer_loop
 
     END DO outer_loop
+
+!_______________________________________________________________________
+!
+! Release OpenCL context
+!_______________________________________________________________________
+
+  CALL opencl_teardown
 !_______________________________________________________________________
 !
 !   Print the time cycle details. Add time cycle iterations.

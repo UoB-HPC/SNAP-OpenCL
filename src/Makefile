@@ -22,6 +22,11 @@ ifeq ($(FORTRAN),mpif90)
   endif
 endif
 
+CC = mpicc
+CFLAGS = -std=c99 -O3
+OPENCL = -framework OpenCL
+
+
 #ifeq ($(FORTRAN),gfortran)
 #  TARGET = snapg
 #  FFLAGS = -O3
@@ -55,7 +60,7 @@ endif
 OBJS = global.o snap_main.o utils.o version.o plib.o geom.o sn.o \
        data.o control.o input.o setup.o dealloc.o translv.o solvar.o \
        outer.o expxs.o inner.o sweep.o octsweep.o dim1_sweep.o dim3_sweep.o \
-       output.o time.o mms.o
+       output.o time.o mms.o sweep_ocl.o
 
 SRCS = global.f90 snap_main.f90 utils.f90 version.f90 plib.f90 geom.f90 \
        sn.f90 data.f90 control.f90 input.f90 setup.f90 dealloc.f90 \
@@ -63,7 +68,7 @@ SRCS = global.f90 snap_main.f90 utils.f90 version.f90 plib.f90 geom.f90 \
        octsweep.f90 dim1_sweep.f90 dim3_sweep.f90 output.f90 time.f90 mms.f90
 
 $(TARGET) :	$(OBJS)
-		$(FORTRAN) $(FFLAGS) $(FFLAG2) -o $@ $(OBJS)
+		$(FORTRAN) $(FFLAGS) $(FFLAG2) -o $@ $(OBJS) $(OPENCL)
 
 snap_main.o :	global.o utils.o version.o input.o setup.o output.o time.o \
 		dealloc.o plib.o control.o
@@ -96,11 +101,18 @@ output.o :	global.o geom.o sn.o data.o control.o utils.o solvar.o \
 time.o :	global.o
 mms.o:	global.o geom.o sn.o data.o control.o plib.o
 
+
 #
 # Fortran rule
 #
 %.o:	%.f90
 	$(FORTRAN) $(FFLAGS) -c $<
+
+#
+# C rule
+#
+%.o:	%.c
+	$(CC) $(CFLAGS) -c $< $(OPENCL)
 
 #
 # Cleanup
