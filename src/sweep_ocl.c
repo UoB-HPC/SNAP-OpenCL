@@ -289,3 +289,10 @@ void sweep_octant_(void)
     free(planes);
 }
 
+// Copy the flux_out buffer back to the host
+void get_output_flux_(double* flux_out)
+{
+    cl_int err;
+    err = clEnqueueReadBuffer(queue, d_flux_out, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, flux_out, 0, NULL, NULL);
+    check_error(err, "Reading d_flux_out");
+}

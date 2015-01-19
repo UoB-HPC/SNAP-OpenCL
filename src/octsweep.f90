@@ -54,6 +54,16 @@ MODULE octsweep_module
 !_______________________________________________________________________
 
     INTEGER(i_knd) :: id, oct, ich, d1, d2, d3, d4, i1, i2
+
+!_______________________________________________________________________
+!
+!   Local memory for the OpenCL sweep result
+!_______________________________________________________________________
+
+    REAL(r_knd), DIMENSION(:,:,:,:,:,:), POINTER :: ocl_flux
+    INTEGER(i_knd) :: a, i, j, k, gg
+    ALLOCATE( ocl_flux(nang,nx,ny,nz,noct,ng) )
+
 !_______________________________________________________________________
 !
 !   Determine octant and chunk index.
@@ -82,7 +92,6 @@ MODULE octsweep_module
 
 !_______________________________________________________________________
 !
-!   TODO
 !   Copy relevant arrays to OpenCL device now the sources are complete
 !_______________________________________________________________________
 
@@ -90,7 +99,6 @@ MODULE octsweep_module
 
 !_______________________________________________________________________
 !
-!   TODO
 !   Do one octant sweep on the OpenCL device
 !_______________________________________________________________________
 
@@ -125,6 +133,25 @@ MODULE octsweep_module
 !   Check that the OpenCL sweep of the octant matches the original
 !_______________________________________________________________________
 
+  CALL get_output_flux ( ocl_flux )
+
+  DO gg = 1, ng
+    DO k = 1, nz
+      DO j = 1, ny
+        DO i = 1, ichunk
+          DO a = 1, nang
+            IF ( ABS( ocl_flux(a,i,j,k,1,g) - ptr_out(a,i,j,k,1,g) ) > 1.0E-12_r_knd ) THEN
+              PRINT *, "FLUX INCORRECT", a, i, j, k, gg
+              STOP
+            END IF
+          END DO
+        END DO
+      END DO
+    END DO
+  END DO
+
+  DEALLOCATE( ocl_flux )
+  STOP
 
 !_______________________________________________________________________
 !_______________________________________________________________________
