@@ -71,7 +71,7 @@ void opencl_setup_(void)
     check_error(err, "Getting platforms");
 
     // Get a device
-    cl_device_type type = CL_DEVICE_TYPE_GPU;
+    cl_device_type type = CL_DEVICE_TYPE_CPU;
     cl_platform_id platform;
     for (unsigned int i = 0; i < num_platforms; i++)
     {
@@ -279,8 +279,7 @@ void sweep_octant_(void)
     // Get the order of cells to enqueue
     plane *planes = compute_sweep_order();
 
-    const size_t global = ng*nang;
-    const size_t local = nang;
+    const size_t global[] = {nang,ng};
 
     // Enqueue kernels
     for (int i = ndiag-1; i >= 0; i--)
@@ -290,16 +289,28 @@ void sweep_octant_(void)
             err = clSetKernelArg(k_sweep_cell, 0, sizeof(unsigned int), &planes[i].cells[j].i);
             err |= clSetKernelArg(k_sweep_cell, 1, sizeof(unsigned int), &planes[i].cells[j].j);
             err |= clSetKernelArg(k_sweep_cell, 2, sizeof(unsigned int), &planes[i].cells[j].k);
-            err |= clSetKernelArg(k_sweep_cell, 3, sizeof(cl_mem), &d_flux_in);
-            err |= clSetKernelArg(k_sweep_cell, 4, sizeof(cl_mem), &d_flux_out);
-            err |= clSetKernelArg(k_sweep_cell, 5, sizeof(cl_mem), &d_source);
-            err |= clSetKernelArg(k_sweep_cell, 6, sizeof(cl_mem), &d_denom);
-            err |= clSetKernelArg(k_sweep_cell, 7, sizeof(cl_mem), &d_flux_halo_y);
-            err |= clSetKernelArg(k_sweep_cell, 8, sizeof(cl_mem), &d_flux_halo_z);
+
+            err |= clSetKernelArg(k_sweep_cell, 3, sizeof(int), &ichunk);
+            err |= clSetKernelArg(k_sweep_cell, 4, sizeof(int), &nx);
+            err |= clSetKernelArg(k_sweep_cell, 5, sizeof(int), &ny);
+            err |= clSetKernelArg(k_sweep_cell, 6, sizeof(int), &nz);
+            err |= clSetKernelArg(k_sweep_cell, 7, sizeof(int), &ng);
+            err |= clSetKernelArg(k_sweep_cell, 8, sizeof(int), &nang);
+            err |= clSetKernelArg(k_sweep_cell, 9, sizeof(int), &noct);
+
+
+            err |= clSetKernelArg(k_sweep_cell, 10, sizeof(cl_mem), &d_flux_in);
+            err |= clSetKernelArg(k_sweep_cell, 11, sizeof(cl_mem), &d_flux_out);
+            err |= clSetKernelArg(k_sweep_cell, 12, sizeof(cl_mem), &d_source);
+            err |= clSetKernelArg(k_sweep_cell, 13, sizeof(cl_mem), &d_denom);
+            err |= clSetKernelArg(k_sweep_cell, 14, sizeof(cl_mem), &d_flux_halo_y);
+            err |= clSetKernelArg(k_sweep_cell, 15, sizeof(cl_mem), &d_flux_halo_z);
             check_error(err, "Set sweep_cell kernel args");
-            err = clEnqueueNDRangeKernel(queue, k_sweep_cell, 1, 0, &global, &local, 0, NULL, NULL);
+            err = clEnqueueNDRangeKernel(queue, k_sweep_cell, 2, 0, global, NULL, 0, NULL, NULL);
             check_error(err, "Enqueue sweep_cell kernel");
+            break;
         }
+        break;
     }
 
     err = clFinish(queue);
