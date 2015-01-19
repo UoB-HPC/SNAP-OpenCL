@@ -14,9 +14,9 @@ MODULE octsweep_module
 
   USE geom_module, ONLY: nc, ndimen, dinv, nx, ny, nz
 
-  USE sn_module, ONLY: ec, nang, wmu, weta, wxi
+  USE sn_module, ONLY: ec, nang, wmu, weta, wxi, cmom
 
-  USE data_module, ONLY: vdelt
+  USE data_module, ONLY: vdelt, ng
 
   USE control_module, ONLY: timedep
 
@@ -77,6 +77,18 @@ MODULE octsweep_module
       d1 = nang; d2 = nx; d3 = ny; d4 = nz
       i1 = oct; i2 = g
     END IF
+
+!_______________________________________________________________________
+!
+!   TODO
+!   Copy relevant arrays to OpenCL device now the sources are complete
+!_______________________________________________________________________
+
+    PRINT *, qtot (1:3,1,1,1,1)
+    CALL copy_to_device ( nx, ny, nz, ng, cmom, qtot )
+
+
+
 !_______________________________________________________________________
 !
 !   Call for the actual sweeper. Ensure proper size/bounds of time-dep

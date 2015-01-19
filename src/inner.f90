@@ -83,6 +83,7 @@ MODULE inner_module
       fluxpi(:,:,:,g)   = flux(:,:,:,g)
     END DO
   !$OMP END PARALLEL DO
+
 !_______________________________________________________________________
 !
 !   Call for the transport sweep. Check convergence, using threads.
