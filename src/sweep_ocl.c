@@ -204,5 +204,88 @@ void copy_to_device_(
 
 }
 
+struct cell {
+    unsigned int i,j,k;
+};
 
+typedef struct {
+    unsigned int num_cells;
+    struct cell *cells;
+    // index is an index into the cells array for when storing the cell indexes
+    unsigned int index;
+} plane;
+
+// Compute the order of the sweep for the first octant
+plane *compute_sweep_order(void)
+{
+    unsigned int nplanes = ichunk + ny + nz - 2;
+    plane *planes = (plane *)malloc(sizeof(plane)*nplanes);
+    for (unsigned int i = 0; i < nplanes; i++)
+    {
+        planes[i].num_cells = 0;
+    }
+
+    // Cells on each plane have equal co-ordinate sum
+    for (unsigned int k = 0; k < nz; k++)
+    {
+        for (unsigned int j = 0; j < ny; j++)
+        {
+            for (unsigned int i = 0; i < ichunk; i++)
+            {
+                unsigned int n = i + j + k;
+                planes[n].num_cells++;
+            }
+        }
+    }
+
+    // Allocate the memory for each plane
+    for (unsigned int i = 0; i < nplanes; i++)
+    {
+        planes[i].cells = (struct cell *)malloc(sizeof(struct cell)*planes[i].num_cells);
+        planes[i].index = 0;
+    }
+
+    // Store the cell indexes in the plane array
+    for (unsigned int k = 0; k < nz; k++)
+    {
+        for (unsigned int j = 0; j < ny; j++)
+        {
+            for (unsigned int i = 0; i < ichunk; i++)
+            {
+                unsigned int n = i + j + k;
+                unsigned int idx = planes[n].index;
+                planes[n].cells[idx].i = i;
+                planes[n].cells[idx].j = j;
+                planes[n].cells[idx].k = k;
+                planes[n].index += 1;
+            }
+        }
+    }
+
+    return planes;
+}
+
+// Enqueue the kernels to sweep over the grid and compute the angular flux
+// Kernel: cell
+// Work-group: energy group
+// Work-item: angle
+void sweep_octant_(void)
+{
+    // Number of planes in this octant
+    unsigned int ndiag = ichunk + ny + nz - 2;
+
+    // Get the order of cells to enqueue
+    plane *planes = compute_sweep_order();
+    for (unsigned int i = 0; i < ndiag; i++)
+        printf("plane %d has %d cells\n", i, planes[i].num_cells);
+
+    // TODO: enqueue kernels
+
+    // Free planes
+    for (unsigned int i = 0; i < ndiag; i++)
+    {
+        free(planes[i].cells);
+    }
+    free(planes);
+}
 
