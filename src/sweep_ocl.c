@@ -21,6 +21,13 @@ cl_program program;
 // OpenCL kernels
 cl_kernel k_sweep;
 
+// OpenCL buffers
+cl_mem d_source;
+cl_mem d_flux_in;
+cl_mem d_flux_out;
+cl_mem d_denom;
+cl_mem d_flux_halo_y;
+cl_mem d_flux_halo_z;
 
 // Check OpenCL errors and exit if no success
 void check_error(cl_int err, char *msg)
@@ -121,6 +128,81 @@ void opencl_teardown_(void)
     err = clReleaseCommandQueue(queue);
     check_error(err, "Releasing queue");
 
+    err = clReleaseMemObject(d_source);
+    check_error(err, "Releasing source buffer");
+
+    err = clReleaseMemObject(d_flux_in);
+    check_error(err, "Releasing flux_in buffer");
+
+    err = clReleaseMemObject(d_flux_out);
+    check_error(err, "Releasing flux_out buffer");
+
+    err = clReleaseMemObject(d_denom);
+    check_error(err, "Releasing d_denom buffer");
+
+    err = clReleaseMemObject(d_flux_halo_y);
+    check_error(err, "Releasing d_flux_halo_y buffer");
+
+    err = clReleaseMemObject(d_flux_halo_z);
+    check_error(err, "Releasing d_flux_halo_z buffer");
+
     printf("done\n");
 }
+
+
+// Create buffers and copy the flux, source and
+// cross section arrays to the OpenCL device
+//
+// Argument list:
+// nx, ny, nz are the (local to MPI task) dimensions of the grid
+// ng is the number of energy groups
+// cmom is the "computational number of moments"
+// ichunk is the number of yz planes in the KBA decomposition
+// source is the total source: qtot(cmom,nx,ny,nz,ng)
+// flux_in(nang,nx,ny,nz,noct,ng)   - Incoming time-edge flux pointer
+// denom(nang,nx,ny,nz,ng) - Sweep denominator, pre-computed/inverted
+// flux_halo_y: jb_in(nang,ichunk,nz,ng)  - y-dir boundary flux in from comm
+// flux_halo_z: kb_in(nang,ichunk,ny,ng)  - z-dir boundary flux in from comm
+int nx, ny, nz, ng, nang, noct, cmom, ichunk;
+void copy_to_device_(
+    int *nx_, int *ny_, int *nz_,
+    int *ng_, int *nang_, int *noct_, int *cmom_,
+    int *ichunk_,
+    double *source, double *flux_in,
+    double *denom,
+    double *flux_halo_y, double *flux_halo_z)
+{
+    // Save problem size information to globals
+    nx = *nx_;
+    ny = *ny_;
+    nz = *nz_;
+    ng = *ng_;
+    nang = *nang_;
+    noct = *noct_;
+    cmom = *cmom_;
+    ichunk = *ichunk_;
+
+    // Create buffers and copy data to device
+    cl_int err;
+    d_source = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*cmom*nx*ny*nz*ng, source, &err);
+    check_error(err, "Creating source buffer");
+
+    d_flux_in = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang*nx*ny*nz*noct*ng, flux_in, &err);
+    check_error(err, "Creating flux_in buffer");
+
+    d_flux_out = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(double)*nang*nx*ny*nz*noct*ng, NULL, &err);
+    check_error(err, "Creating flux_in buffer");
+
+    d_denom = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang*nx*ny*nz*ng, denom, &err);
+    check_error(err, "Creating denom buffer");
+
+    d_flux_halo_y = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang*ichunk*nz*ng, flux_halo_y, &err);
+    check_error(err, "Creating flux_halo_y buffer");
+
+    d_flux_halo_z = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang*ichunk*ny*ng, flux_halo_z, &err);
+    check_error(err, "Creating flux_halo_z buffer");
+
+}
+
+
 

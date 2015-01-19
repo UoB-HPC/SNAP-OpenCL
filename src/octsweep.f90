@@ -14,7 +14,7 @@ MODULE octsweep_module
 
   USE geom_module, ONLY: nc, ndimen, dinv, nx, ny, nz
 
-  USE sn_module, ONLY: ec, nang, wmu, weta, wxi, cmom
+  USE sn_module, ONLY: ec, nang, wmu, weta, wxi, cmom, noct
 
   USE data_module, ONLY: vdelt, ng
 
@@ -26,6 +26,8 @@ MODULE octsweep_module
   USE dim1_sweep_module, ONLY: dim1_sweep
 
   USE dim3_sweep_module, ONLY: dim3_sweep
+
+  USE plib_module, ONLY: ichunk
 
   IMPLICIT NONE
 
@@ -84,8 +86,14 @@ MODULE octsweep_module
 !   Copy relevant arrays to OpenCL device now the sources are complete
 !_______________________________________________________________________
 
-    PRINT *, qtot (1:3,1,1,1,1)
-    CALL copy_to_device ( nx, ny, nz, ng, cmom, qtot )
+    CALL copy_to_device ( nx, ny, nz, ng, nang, noct, cmom, ichunk, qtot, ptr_in, dinv, jb_in, kb_in )
+
+!_______________________________________________________________________
+!
+!   TODO
+!   Do one octant sweep on the OpenCL device
+!_______________________________________________________________________
+
 
 
 
@@ -110,6 +118,14 @@ MODULE octsweep_module
         kb_out(:,:,:,g), wmu, weta, wxi, flkx(:,:,:,g), flky(:,:,:,g), &
         flkz(:,:,:,g), t_xs(:,:,:,g) )
     END IF
+
+!_______________________________________________________________________
+!
+!   TODO
+!   Check that the OpenCL sweep of the octant matches the original
+!_______________________________________________________________________
+
+
 !_______________________________________________________________________
 !_______________________________________________________________________
 
