@@ -19,7 +19,7 @@ cl_command_queue queue;
 cl_program program;
 
 // OpenCL kernels
-cl_kernel k_sweep;
+cl_kernel k_sweep_cell;
 
 // OpenCL buffers
 cl_mem d_source;
@@ -106,8 +106,8 @@ void opencl_setup_(void)
     check_build_error(err, "Building program");
 
     // Create kernels
-    k_sweep = clCreateKernel(program, "sweep", &err);
-    check_error(err, "Creating kernel sweep");
+    k_sweep_cell = clCreateKernel(program, "sweep_cell", &err);
+    check_error(err, "Creating kernel sweep_cell");
 
     free(platforms);
     printf("done\n");
@@ -271,15 +271,39 @@ plane *compute_sweep_order(void)
 // Work-item: angle
 void sweep_octant_(void)
 {
+    cl_int err;
+
     // Number of planes in this octant
     unsigned int ndiag = ichunk + ny + nz - 2;
 
     // Get the order of cells to enqueue
     plane *planes = compute_sweep_order();
-    for (unsigned int i = 0; i < ndiag; i++)
-        printf("plane %d has %d cells\n", i, planes[i].num_cells);
 
-    // TODO: enqueue kernels
+    const size_t global = ng*nang;
+    const size_t local = nang;
+
+    // Enqueue kernels
+    for (int i = ndiag-1; i >= 0; i--)
+    {
+        for (unsigned int j = 0; j < planes[i].num_cells; j++)
+        {
+            err = clSetKernelArg(k_sweep_cell, 0, sizeof(unsigned int), &planes[i].cells[j].i);
+            err |= clSetKernelArg(k_sweep_cell, 1, sizeof(unsigned int), &planes[i].cells[j].j);
+            err |= clSetKernelArg(k_sweep_cell, 2, sizeof(unsigned int), &planes[i].cells[j].k);
+            err |= clSetKernelArg(k_sweep_cell, 3, sizeof(cl_mem), &d_flux_in);
+            err |= clSetKernelArg(k_sweep_cell, 4, sizeof(cl_mem), &d_flux_out);
+            err |= clSetKernelArg(k_sweep_cell, 5, sizeof(cl_mem), &d_source);
+            err |= clSetKernelArg(k_sweep_cell, 6, sizeof(cl_mem), &d_denom);
+            err |= clSetKernelArg(k_sweep_cell, 7, sizeof(cl_mem), &d_flux_halo_y);
+            err |= clSetKernelArg(k_sweep_cell, 8, sizeof(cl_mem), &d_flux_halo_z);
+            check_error(err, "Set sweep_cell kernel args");
+            err = clEnqueueNDRangeKernel(queue, k_sweep_cell, 1, 0, &global, &local, 0, NULL, NULL);
+            check_error(err, "Enqueue sweep_cell kernel");
+        }
+    }
+
+    err = clFinish(queue);
+    check_error(err, "Finish queue");
 
     // Free planes
     for (unsigned int i = 0; i < ndiag; i++)
