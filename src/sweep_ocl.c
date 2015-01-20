@@ -350,9 +350,7 @@ void sweep_octant_(void)
             check_error(err, "Set sweep_cell kernel args");
             err = clEnqueueNDRangeKernel(queue, k_sweep_cell, 2, 0, global, NULL, 0, NULL, NULL);
             check_error(err, "Enqueue sweep_cell kernel");
-            break;
         }
-        break;
     }
 
     err = clFinish(queue);
