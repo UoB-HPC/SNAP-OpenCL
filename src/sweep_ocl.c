@@ -26,8 +26,6 @@ cl_mem d_source;
 cl_mem d_flux_in;
 cl_mem d_flux_out;
 cl_mem d_denom;
-cl_mem d_flux_halo_y;
-cl_mem d_flux_halo_z;
 
 // Check OpenCL errors and exit if no success
 void check_error(cl_int err, char *msg)
@@ -140,12 +138,6 @@ void opencl_teardown_(void)
     err = clReleaseMemObject(d_denom);
     check_error(err, "Releasing d_denom buffer");
 
-    err = clReleaseMemObject(d_flux_halo_y);
-    check_error(err, "Releasing d_flux_halo_y buffer");
-
-    err = clReleaseMemObject(d_flux_halo_z);
-    check_error(err, "Releasing d_flux_halo_z buffer");
-
     printf("done\n");
 }
 
@@ -161,16 +153,13 @@ void opencl_teardown_(void)
 // source is the total source: qtot(cmom,nx,ny,nz,ng)
 // flux_in(nang,nx,ny,nz,noct,ng)   - Incoming time-edge flux pointer
 // denom(nang,nx,ny,nz,ng) - Sweep denominator, pre-computed/inverted
-// flux_halo_y: jb_in(nang,ichunk,nz,ng)  - y-dir boundary flux in from comm
-// flux_halo_z: kb_in(nang,ichunk,ny,ng)  - z-dir boundary flux in from comm
 int nx, ny, nz, ng, nang, noct, cmom, ichunk;
 void copy_to_device_(
     int *nx_, int *ny_, int *nz_,
     int *ng_, int *nang_, int *noct_, int *cmom_,
     int *ichunk_,
     double *source, double *flux_in,
-    double *denom,
-    double *flux_halo_y, double *flux_halo_z)
+    double *denom)
 {
     // Save problem size information to globals
     nx = *nx_;
@@ -195,12 +184,6 @@ void copy_to_device_(
 
     d_denom = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang*nx*ny*nz*ng, denom, &err);
     check_error(err, "Creating denom buffer");
-
-    d_flux_halo_y = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang*ichunk*nz*ng, flux_halo_y, &err);
-    check_error(err, "Creating flux_halo_y buffer");
-
-    d_flux_halo_z = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang*ichunk*ny*ng, flux_halo_z, &err);
-    check_error(err, "Creating flux_halo_z buffer");
 
 }
 
@@ -303,8 +286,6 @@ void sweep_octant_(void)
             err |= clSetKernelArg(k_sweep_cell, 11, sizeof(cl_mem), &d_flux_out);
             err |= clSetKernelArg(k_sweep_cell, 12, sizeof(cl_mem), &d_source);
             err |= clSetKernelArg(k_sweep_cell, 13, sizeof(cl_mem), &d_denom);
-            err |= clSetKernelArg(k_sweep_cell, 14, sizeof(cl_mem), &d_flux_halo_y);
-            err |= clSetKernelArg(k_sweep_cell, 15, sizeof(cl_mem), &d_flux_halo_z);
             check_error(err, "Set sweep_cell kernel args");
             err = clEnqueueNDRangeKernel(queue, k_sweep_cell, 2, 0, global, NULL, 0, NULL, NULL);
             check_error(err, "Enqueue sweep_cell kernel");

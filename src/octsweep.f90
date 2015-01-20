@@ -95,7 +95,7 @@ MODULE octsweep_module
 !   Copy relevant arrays to OpenCL device now the sources are complete
 !_______________________________________________________________________
 
-    CALL copy_to_device ( nx, ny, nz, ng, nang, noct, cmom, ichunk, qtot, ptr_in, dinv, jb_in, kb_in )
+    CALL copy_to_device ( nx, ny, nz, ng, nang, noct, cmom, ichunk, qtot, ptr_in, dinv )
 
 !_______________________________________________________________________
 !

@@ -25,11 +25,7 @@ __kernel void sweep_cell(
 
     // Source
     __global double *source,
-    __global double *denom,
-
-    // Flux halos
-    __global double *flux_halo_y,
-    __global double *flux_halo_z
+    __global double *denom
     )
 {
     // Get indexes for angle and group
@@ -39,6 +35,10 @@ __kernel void sweep_cell(
     // TODO: Allow the octant to be determined by an argument
     int oct = 0;
 
+    // Assume transmissive (vacuum boundaries) and that we
+    // are sweeping the whole grid so have access to all neighbours
+    // This means that we only consider the case for one MPI task
+    // at present.
 
     flux_out(a_idx,i,j,k,oct,g_idx) = 12345.0;
     return;
