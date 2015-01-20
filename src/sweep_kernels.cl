@@ -5,7 +5,7 @@
 #define source(m,i,j,k) source[m+(cmom*i)+(cmom*nx*j)+(cmom*nx*ny*k)]
 #define flux_i(a,j,k,g) flux_i[a+(nang*j)+(nang*ny*k)+(nang*ny*nz*g)]
 #define flux_j(a,i,k,g) flux_j[a+(nang*i)+(nang*nx*k)+(nang*nx*nz*g)]
-#define flux_k(a,i,j,g) flux_j[a+(nang*i)+(nang*nx*j)+(nang*nx*ny*g)]
+#define flux_k(a,i,j,g) flux_k[a+(nang*i)+(nang*nx*j)+(nang*nx*ny*g)]
 #define denom(a,i,j,k,g) denom[a+(nang*i)+(nang*nx*j)+(nang*nx*ny*k)+(nang*nx*ny*nz*g)]
 #define dd_j(a) dd_j[a]
 #define dd_k(a) dd_k[a]
