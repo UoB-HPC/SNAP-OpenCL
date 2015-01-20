@@ -12,9 +12,9 @@ MODULE octsweep_module
 
   USE global_module, ONLY: i_knd, r_knd, zero
 
-  USE geom_module, ONLY: nc, ndimen, dinv, nx, ny, nz
+  USE geom_module, ONLY: nc, ndimen, dinv, nx, ny, nz, hi, hj, hk
 
-  USE sn_module, ONLY: ec, nang, wmu, weta, wxi, cmom, noct
+  USE sn_module, ONLY: ec, nang, wmu, weta, wxi, cmom, noct, mu
 
   USE data_module, ONLY: vdelt, ng
 
@@ -95,7 +95,8 @@ MODULE octsweep_module
 !   Copy relevant arrays to OpenCL device now the sources are complete
 !_______________________________________________________________________
 
-    CALL copy_to_device ( nx, ny, nz, ng, nang, noct, cmom, ichunk, qtot, ptr_in, dinv )
+    CALL copy_to_device ( nx, ny, nz, ng, nang, noct, cmom, ichunk, hi, hj, hk, mu, qtot, ptr_in, dinv )
+
 
 !_______________________________________________________________________
 !

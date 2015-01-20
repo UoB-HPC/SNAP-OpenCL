@@ -25,7 +25,13 @@ cl_kernel k_sweep_cell;
 cl_mem d_source;
 cl_mem d_flux_in;
 cl_mem d_flux_out;
+cl_mem d_flux_i;
+cl_mem d_flux_j;
+cl_mem d_flux_k;
 cl_mem d_denom;
+cl_mem d_dd_j;
+cl_mem d_dd_k;
+cl_mem d_mu;
 
 // Check OpenCL errors and exit if no success
 void check_error(cl_int err, char *msg)
@@ -109,6 +115,7 @@ void opencl_setup_(void)
 
     free(platforms);
     printf("done\n");
+
 }
 
 // Release the global OpenCL handles
@@ -150,14 +157,19 @@ void opencl_teardown_(void)
 // ng is the number of energy groups
 // cmom is the "computational number of moments"
 // ichunk is the number of yz planes in the KBA decomposition
+// dd_i, dd_j(nang), dd_k(nang) is the x,y,z (resp) dianond difference coefficients
+// mu(nang) is x-direction cosines
 // source is the total source: qtot(cmom,nx,ny,nz,ng)
 // flux_in(nang,nx,ny,nz,noct,ng)   - Incoming time-edge flux pointer
 // denom(nang,nx,ny,nz,ng) - Sweep denominator, pre-computed/inverted
 int nx, ny, nz, ng, nang, noct, cmom, ichunk;
+double d_dd_i;
 void copy_to_device_(
     int *nx_, int *ny_, int *nz_,
     int *ng_, int *nang_, int *noct_, int *cmom_,
     int *ichunk_,
+    double *dd_i_, double *dd_j, double *dd_k,
+    double *mu,
     double *source, double *flux_in,
     double *denom)
 {
@@ -170,21 +182,59 @@ void copy_to_device_(
     noct = *noct_;
     cmom = *cmom_;
     ichunk = *ichunk_;
+    d_dd_i = *dd_i_;
 
     // Create buffers and copy data to device
     cl_int err;
     d_source = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*cmom*nx*ny*nz*ng, source, &err);
     check_error(err, "Creating source buffer");
 
-    d_flux_in = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang*nx*ny*nz*noct*ng, flux_in, &err);
+    d_flux_in = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang*nx*ny*nz*noct*ng, NULL, &err);
     check_error(err, "Creating flux_in buffer");
+    printf("helloooo\n");
+    err = clEnqueueWriteBuffer(queue, d_flux_in, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, flux_in, 0, NULL, NULL);
+    check_error(err, "Copying flux_in to device");
+    printf("loool\n");
 
     d_flux_out = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(double)*nang*nx*ny*nz*noct*ng, NULL, &err);
-    check_error(err, "Creating flux_in buffer");
+    check_error(err, "Creating flux_out buffer");
 
     d_denom = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang*nx*ny*nz*ng, denom, &err);
     check_error(err, "Creating denom buffer");
 
+    // flux_i(nang,ny,nz,ng)     - Working psi_x array (edge pointers)
+    // flux_j(nang,ichunk,nz,ng) - Working psi_y array
+    // flux_k(nang,ichunk,ny,ng) - Working psi_z array
+
+    d_flux_i = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nang*ny*nz*ng, NULL, &err);
+    check_error(err, "Creating flux_i buffer");
+    double *zero = (double *)calloc(sizeof(double),nang*ny*nz*ng);
+    err = clEnqueueWriteBuffer(queue, d_flux_i, CL_TRUE, 0, sizeof(double)*nang*ny*nz*ng, zero, 0, NULL, NULL);
+    check_error(err, "Zeroing flux_i buffer");
+    free(zero);
+
+    d_flux_j = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nang*nx*nz*ng, NULL, &err);
+    check_error(err, "Creating flux_j buffer");
+    zero = (double *)calloc(sizeof(double),nang*nx*nz*ng);
+    err = clEnqueueWriteBuffer(queue, d_flux_j, CL_TRUE, 0, sizeof(double)*nang*nx*nz*ng, zero, 0, NULL, NULL);
+    check_error(err, "Zeroing flux_j buffer");
+    free(zero);
+
+    d_flux_k = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nang*nx*ny*ng, NULL, &err);
+    check_error(err, "Creating flux_k buffer");
+    zero = (double *)calloc(sizeof(double),nang*nx*ny*ng);
+    err = clEnqueueWriteBuffer(queue, d_flux_k, CL_TRUE, 0, sizeof(double)*nang*nx*ny*ng, zero, 0, NULL, NULL);
+    check_error(err, "Zeroing flux_k buffer");
+    free(zero);
+
+    d_dd_j = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang, dd_j, &err);
+    check_error(err, "Creating dd_j buffer");
+
+    d_dd_k = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang, dd_k, &err);
+    check_error(err, "Creating dd_k buffer");
+
+    d_mu = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang, mu, &err);
+    check_error(err, "Creating mu buffer");
 }
 
 struct cell {
@@ -280,12 +330,23 @@ void sweep_octant_(void)
             err |= clSetKernelArg(k_sweep_cell, 7, sizeof(int), &ng);
             err |= clSetKernelArg(k_sweep_cell, 8, sizeof(int), &nang);
             err |= clSetKernelArg(k_sweep_cell, 9, sizeof(int), &noct);
+            err |= clSetKernelArg(k_sweep_cell, 10, sizeof(int), &cmom);
+
+            err |= clSetKernelArg(k_sweep_cell, 11, sizeof(double), &d_dd_i);
+            err |= clSetKernelArg(k_sweep_cell, 12, sizeof(cl_mem), &d_dd_j);
+            err |= clSetKernelArg(k_sweep_cell, 13, sizeof(cl_mem), &d_dd_k);
+            err |= clSetKernelArg(k_sweep_cell, 14, sizeof(cl_mem), &d_mu);
+
+            err |= clSetKernelArg(k_sweep_cell, 15, sizeof(cl_mem), &d_flux_in);
+            err |= clSetKernelArg(k_sweep_cell, 16, sizeof(cl_mem), &d_flux_out);
+
+            err |= clSetKernelArg(k_sweep_cell, 17, sizeof(cl_mem), &d_flux_i);
+            err |= clSetKernelArg(k_sweep_cell, 18, sizeof(cl_mem), &d_flux_j);
+            err |= clSetKernelArg(k_sweep_cell, 19, sizeof(cl_mem), &d_flux_k);
 
 
-            err |= clSetKernelArg(k_sweep_cell, 10, sizeof(cl_mem), &d_flux_in);
-            err |= clSetKernelArg(k_sweep_cell, 11, sizeof(cl_mem), &d_flux_out);
-            err |= clSetKernelArg(k_sweep_cell, 12, sizeof(cl_mem), &d_source);
-            err |= clSetKernelArg(k_sweep_cell, 13, sizeof(cl_mem), &d_denom);
+            err |= clSetKernelArg(k_sweep_cell, 20, sizeof(cl_mem), &d_source);
+            err |= clSetKernelArg(k_sweep_cell, 21, sizeof(cl_mem), &d_denom);
             check_error(err, "Set sweep_cell kernel args");
             err = clEnqueueNDRangeKernel(queue, k_sweep_cell, 2, 0, global, NULL, 0, NULL, NULL);
             check_error(err, "Enqueue sweep_cell kernel");
