@@ -48,8 +48,8 @@ void check_build_error(cl_int err, char *msg)
 {
     if (err == CL_BUILD_PROGRAM_FAILURE)
     {
-        char *build_log = (char*)malloc(sizeof(char)*2048);
-        clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, sizeof(char)*2048, build_log, NULL);
+        char *build_log = (char*)malloc(sizeof(char)*4096);
+        clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, sizeof(char)*4096, build_log, NULL);
         fprintf(stderr, "Error: %d\n", err);
         fprintf(stderr, "Build log:\n%s\n", build_log);
         free(build_log);
