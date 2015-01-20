@@ -63,10 +63,15 @@ __kernel void sweep_cell(
     // NO fixup
 
     // Compute angular source
+    // (1 in first position is scattering moment)
     double psi = source(1,i,j,k);
     psi += flux_i(a_idx,j,k,g_idx)*mu(a_idx)*dd_i + flux_j(a_idx,i,k,g_idx)*dd_j(a_idx) + flux_k(a_idx,i,j,g_idx)*dd_k(a_idx);
     psi *= denom(a_idx,i,j,k,g_idx);
 
+    // Compute upwind fluxes
+    flux_i(a_idx,j,k,g_idx) = 2.0*psi - flux_i(a_idx,j,k,g_idx);
+    flux_j(a_idx,i,k,g_idx) = 2.0*psi - flux_j(a_idx,i,k,g_idx);
+    flux_k(a_idx,i,j,g_idx) = 2.0*psi - flux_k(a_idx,i,j,g_idx);
 
     flux_out(a_idx,i,j,k,oct,g_idx) = psi;
     return;
