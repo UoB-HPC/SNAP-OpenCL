@@ -84,6 +84,14 @@ MODULE inner_module
     END DO
   !$OMP END PARALLEL DO
 
+
+!_______________________________________________________________________
+!
+!   Copy the updated source array to the OpenCL device
+!_______________________________________________________________________
+
+    CALL copy_source_to_device ( qtot )
+
 !_______________________________________________________________________
 !
 !   Call for the transport sweep. Check convergence, using threads.

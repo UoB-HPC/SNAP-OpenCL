@@ -13,9 +13,9 @@ SUBROUTINE translv
     ichunk, do_nested
 
   USE geom_module, ONLY: geom_alloc, geom_dealloc, dinv, param_calc,   &
-    nx, ny_gl, nz_gl, diag_setup
+    nx, ny_gl, nz_gl, diag_setup, hi, hj, hk
 
-  USE sn_module, ONLY: nang, noct, mu, eta, xi
+  USE sn_module, ONLY: nang, noct, mu, eta, xi, cmom
 
   USE data_module, ONLY: ng, v, vdelt, mat, sigt, siga, slgg, src_opt, &
     qim
@@ -110,6 +110,13 @@ SUBROUTINE translv
 
 !_______________________________________________________________________
 !
+!   Copy the problem sizes and constant arrays to OpenCL device
+!_______________________________________________________________________
+
+  CALL copy_to_device ( nx, ny_gl, nz_gl, ng, nang, noct, cmom, ichunk, mu, ptr_in )
+
+!_______________________________________________________________________
+!
 ! The time loop solves the problem for nsteps. If static, there is
 ! only one step, and it does not have any time-absorption or -source
 ! terms. Set the pointers to angular flux arrays. Set time to one for
@@ -199,6 +206,15 @@ SUBROUTINE translv
           vdelt(g), dinv(:,:,:,:,g) )
       END DO
   !$OMP END PARALLEL DO
+
+!_______________________________________________________________________
+!
+!     Copy the dinv array just calculated to the device
+!_______________________________________________________________________
+
+      CALL copy_denom_to_device ( dinv )
+      CALL copy_coefficients_to_device ( hi, hj, hk )
+
 !_______________________________________________________________________
 !
 !     Perform an outer iteration. Add up inners. Check convergence.

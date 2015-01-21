@@ -89,22 +89,21 @@ MODULE octsweep_module
       d1 = nang; d2 = nx; d3 = ny; d4 = nz
       i1 = oct; i2 = g
     END IF
-
 !_______________________________________________________________________
 !
-!   Copy relevant arrays to OpenCL device now the sources are complete
+!   As the groups are batched in SNAP, we do the sweep on the OpenCL
+!   device many times, so we need to zero out the edge flux arrays
 !_______________________________________________________________________
 
-    CALL copy_to_device ( nx, ny, nz, ng, nang, noct, cmom, ichunk, hi, hj, hk, mu, qtot, ptr_in, dinv )
 
+    CALL zero_edge_flux_buffers
 
 !_______________________________________________________________________
 !
 !   Do one octant sweep on the OpenCL device
 !_______________________________________________________________________
 
-  CALL sweep_octant
-
+    CALL sweep_octant
 
 !_______________________________________________________________________
 !

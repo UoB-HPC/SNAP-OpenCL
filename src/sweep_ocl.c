@@ -151,6 +151,8 @@ void opencl_teardown_(void)
 }
 
 
+void zero_edge_flux_buffers_(void);
+
 // Create buffers and copy the flux, source and
 // cross section arrays to the OpenCL device
 //
@@ -161,7 +163,6 @@ void opencl_teardown_(void)
 // ichunk is the number of yz planes in the KBA decomposition
 // dd_i, dd_j(nang), dd_k(nang) is the x,y,z (resp) dianond difference coefficients
 // mu(nang) is x-direction cosines
-// source is the total source: qtot(cmom,nx,ny,nz,ng)
 // flux_in(nang,nx,ny,nz,noct,ng)   - Incoming time-edge flux pointer
 // denom(nang,nx,ny,nz,ng) - Sweep denominator, pre-computed/inverted
 int nx, ny, nz, ng, nang, noct, cmom, ichunk;
@@ -170,10 +171,8 @@ void copy_to_device_(
     int *nx_, int *ny_, int *nz_,
     int *ng_, int *nang_, int *noct_, int *cmom_,
     int *ichunk_,
-    double *dd_i_, double *dd_j, double *dd_k,
     double *mu,
-    double *source, double *flux_in,
-    double *denom)
+    double *flux_in)
 {
     // Save problem size information to globals
     nx = *nx_;
@@ -184,12 +183,9 @@ void copy_to_device_(
     noct = *noct_;
     cmom = *cmom_;
     ichunk = *ichunk_;
-    d_dd_i = *dd_i_;
 
     // Create buffers and copy data to device
     cl_int err;
-    d_source = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*cmom*nx*ny*nz*ng, source, &err);
-    check_error(err, "Creating source buffer");
 
     d_flux_in = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang*nx*ny*nz*noct*ng, NULL, &err);
     check_error(err, "Creating flux_in buffer");
@@ -201,42 +197,85 @@ void copy_to_device_(
     d_flux_out = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(double)*nang*nx*ny*nz*noct*ng, NULL, &err);
     check_error(err, "Creating flux_out buffer");
 
-    d_denom = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang*nx*ny*nz*ng, denom, &err);
-    check_error(err, "Creating denom buffer");
-
     // flux_i(nang,ny,nz,ng)     - Working psi_x array (edge pointers)
     // flux_j(nang,ichunk,nz,ng) - Working psi_y array
     // flux_k(nang,ichunk,ny,ng) - Working psi_z array
 
     d_flux_i = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nang*ny*nz*ng, NULL, &err);
     check_error(err, "Creating flux_i buffer");
+
+    d_flux_j = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nang*nx*nz*ng, NULL, &err);
+    check_error(err, "Creating flux_j buffer");
+
+    d_flux_k = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nang*nx*ny*ng, NULL, &err);
+    check_error(err, "Creating flux_k buffer");
+
+    zero_edge_flux_buffers_();
+
+    d_dd_j = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang, NULL, &err);
+    check_error(err, "Creating dd_j buffer");
+
+    d_dd_k = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang, NULL, &err);
+    check_error(err, "Creating dd_k buffer");
+
+    d_mu = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang, mu, &err);
+    check_error(err, "Creating mu buffer");
+
+    // Create buffers written to later
+    d_denom = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang*nx*ny*nz*ng, NULL, &err);
+    check_error(err, "Creating denom buffer");
+
+    d_source = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*cmom*nx*ny*nz*ng, NULL, &err);
+    check_error(err, "Creating source buffer");
+
+}
+
+// Copy the source term to the OpenCL device
+// source is the total source: qtot(cmom,nx,ny,nz,ng)
+void copy_source_to_device_(double *source)
+{
+    cl_int err;
+    err = clEnqueueWriteBuffer(queue, d_source, CL_TRUE, 0, sizeof(double)*cmom*nx*ny*nz*ng, source, 0, NULL, NULL);
+    check_error(err, "Copying source buffer");
+}
+
+// Copy the angular flux update formula demoninator
+void copy_denom_to_device_(double *denom)
+{
+    cl_int err;
+    err = clEnqueueWriteBuffer(queue, d_denom, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*ng, denom, 0, NULL, NULL);
+    check_error(err, "Copying denom buffer");
+
+}
+
+void copy_coefficients_to_device_(double *dd_i_, double *dd_j, double *dd_k)
+{
+    d_dd_i = *dd_i_;
+    cl_int err;
+    err = clEnqueueWriteBuffer(queue, d_dd_j, CL_TRUE, 0, sizeof(double)*nang, dd_j, 0, NULL, NULL);
+    check_error(err, "Copying dd_j buffer");
+
+    err = clEnqueueWriteBuffer(queue, d_dd_k, CL_TRUE, 0, sizeof(double)*nang, dd_k, 0, NULL, NULL);
+    check_error(err, "Copying dd_k buffer");
+}
+
+void zero_edge_flux_buffers_(void)
+{
+    cl_int err;
     double *zero = (double *)calloc(sizeof(double),nang*ny*nz*ng);
     err = clEnqueueWriteBuffer(queue, d_flux_i, CL_TRUE, 0, sizeof(double)*nang*ny*nz*ng, zero, 0, NULL, NULL);
     check_error(err, "Zeroing flux_i buffer");
     free(zero);
 
-    d_flux_j = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nang*nx*nz*ng, NULL, &err);
-    check_error(err, "Creating flux_j buffer");
     zero = (double *)calloc(sizeof(double),nang*nx*nz*ng);
     err = clEnqueueWriteBuffer(queue, d_flux_j, CL_TRUE, 0, sizeof(double)*nang*nx*nz*ng, zero, 0, NULL, NULL);
     check_error(err, "Zeroing flux_j buffer");
     free(zero);
 
-    d_flux_k = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nang*nx*ny*ng, NULL, &err);
-    check_error(err, "Creating flux_k buffer");
     zero = (double *)calloc(sizeof(double),nang*nx*ny*ng);
     err = clEnqueueWriteBuffer(queue, d_flux_k, CL_TRUE, 0, sizeof(double)*nang*nx*ny*ng, zero, 0, NULL, NULL);
     check_error(err, "Zeroing flux_k buffer");
     free(zero);
-
-    d_dd_j = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang, dd_j, &err);
-    check_error(err, "Creating dd_j buffer");
-
-    d_dd_k = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang, dd_k, &err);
-    check_error(err, "Creating dd_k buffer");
-
-    d_mu = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang, mu, &err);
-    check_error(err, "Creating mu buffer");
 }
 
 struct cell {
