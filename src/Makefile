@@ -23,7 +23,7 @@ ifeq ($(FORTRAN),mpif90)
 endif
 
 CC = mpicc
-CFLAGS = -std=c99 -O3
+CFLAGS = -std=c99 -O3 -openmp
 OPENCL = -framework OpenCL
 
 

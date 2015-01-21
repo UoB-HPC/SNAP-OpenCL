@@ -8,6 +8,8 @@
 #include <CL/cl.h>
 #endif
 
+#include <omp.h>
+
 // Include the kernel strings
 #include "sweep_kernels.h"
 
@@ -314,6 +316,34 @@ void sweep_octant_(void)
 
     const size_t global[] = {nang,ng};
 
+    err = clSetKernelArg(k_sweep_cell, 3, sizeof(int), &ichunk);
+    err |= clSetKernelArg(k_sweep_cell, 4, sizeof(int), &nx);
+    err |= clSetKernelArg(k_sweep_cell, 5, sizeof(int), &ny);
+    err |= clSetKernelArg(k_sweep_cell, 6, sizeof(int), &nz);
+    err |= clSetKernelArg(k_sweep_cell, 7, sizeof(int), &ng);
+    err |= clSetKernelArg(k_sweep_cell, 8, sizeof(int), &nang);
+    err |= clSetKernelArg(k_sweep_cell, 9, sizeof(int), &noct);
+    err |= clSetKernelArg(k_sweep_cell, 10, sizeof(int), &cmom);
+
+    err |= clSetKernelArg(k_sweep_cell, 11, sizeof(double), &d_dd_i);
+    err |= clSetKernelArg(k_sweep_cell, 12, sizeof(cl_mem), &d_dd_j);
+    err |= clSetKernelArg(k_sweep_cell, 13, sizeof(cl_mem), &d_dd_k);
+    err |= clSetKernelArg(k_sweep_cell, 14, sizeof(cl_mem), &d_mu);
+
+    err |= clSetKernelArg(k_sweep_cell, 15, sizeof(cl_mem), &d_flux_in);
+    err |= clSetKernelArg(k_sweep_cell, 16, sizeof(cl_mem), &d_flux_out);
+
+    err |= clSetKernelArg(k_sweep_cell, 17, sizeof(cl_mem), &d_flux_i);
+    err |= clSetKernelArg(k_sweep_cell, 18, sizeof(cl_mem), &d_flux_j);
+    err |= clSetKernelArg(k_sweep_cell, 19, sizeof(cl_mem), &d_flux_k);
+
+
+    err |= clSetKernelArg(k_sweep_cell, 20, sizeof(cl_mem), &d_source);
+    err |= clSetKernelArg(k_sweep_cell, 21, sizeof(cl_mem), &d_denom);
+    check_error(err, "Set sweep_cell kernel args");
+
+    double tic = omp_get_wtime();
+
     // Enqueue kernels
     for (int i = ndiag-1; i >= 0; i--)
     {
@@ -322,32 +352,8 @@ void sweep_octant_(void)
             err = clSetKernelArg(k_sweep_cell, 0, sizeof(unsigned int), &planes[i].cells[j].i);
             err |= clSetKernelArg(k_sweep_cell, 1, sizeof(unsigned int), &planes[i].cells[j].j);
             err |= clSetKernelArg(k_sweep_cell, 2, sizeof(unsigned int), &planes[i].cells[j].k);
+            check_error(err, "Setting sweep_cell kernel args cell positions");
 
-            err |= clSetKernelArg(k_sweep_cell, 3, sizeof(int), &ichunk);
-            err |= clSetKernelArg(k_sweep_cell, 4, sizeof(int), &nx);
-            err |= clSetKernelArg(k_sweep_cell, 5, sizeof(int), &ny);
-            err |= clSetKernelArg(k_sweep_cell, 6, sizeof(int), &nz);
-            err |= clSetKernelArg(k_sweep_cell, 7, sizeof(int), &ng);
-            err |= clSetKernelArg(k_sweep_cell, 8, sizeof(int), &nang);
-            err |= clSetKernelArg(k_sweep_cell, 9, sizeof(int), &noct);
-            err |= clSetKernelArg(k_sweep_cell, 10, sizeof(int), &cmom);
-
-            err |= clSetKernelArg(k_sweep_cell, 11, sizeof(double), &d_dd_i);
-            err |= clSetKernelArg(k_sweep_cell, 12, sizeof(cl_mem), &d_dd_j);
-            err |= clSetKernelArg(k_sweep_cell, 13, sizeof(cl_mem), &d_dd_k);
-            err |= clSetKernelArg(k_sweep_cell, 14, sizeof(cl_mem), &d_mu);
-
-            err |= clSetKernelArg(k_sweep_cell, 15, sizeof(cl_mem), &d_flux_in);
-            err |= clSetKernelArg(k_sweep_cell, 16, sizeof(cl_mem), &d_flux_out);
-
-            err |= clSetKernelArg(k_sweep_cell, 17, sizeof(cl_mem), &d_flux_i);
-            err |= clSetKernelArg(k_sweep_cell, 18, sizeof(cl_mem), &d_flux_j);
-            err |= clSetKernelArg(k_sweep_cell, 19, sizeof(cl_mem), &d_flux_k);
-
-
-            err |= clSetKernelArg(k_sweep_cell, 20, sizeof(cl_mem), &d_source);
-            err |= clSetKernelArg(k_sweep_cell, 21, sizeof(cl_mem), &d_denom);
-            check_error(err, "Set sweep_cell kernel args");
             err = clEnqueueNDRangeKernel(queue, k_sweep_cell, 2, 0, global, NULL, 0, NULL, NULL);
             check_error(err, "Enqueue sweep_cell kernel");
         }
@@ -355,6 +361,12 @@ void sweep_octant_(void)
 
     err = clFinish(queue);
     check_error(err, "Finish queue");
+
+    double toc = omp_get_wtime();
+
+    printf("Sweep took %lfs\n", toc-tic);
+
+    printf("Grind time: %lfns\n", 1000000000.0*(toc-tic)/(nx*ny*nz*nang*ng));
 
     // Free planes
     for (unsigned int i = 0; i < ndiag; i++)
