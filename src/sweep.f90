@@ -8,11 +8,11 @@
 
 MODULE sweep_module
 
-  USE global_module, ONLY: i_knd, zero, l_knd
+  USE global_module, ONLY: i_knd, zero, l_knd, r_knd
 
-  USE geom_module, ONLY: ndimen, ny, nz, nc
+  USE geom_module, ONLY: ndimen, ny, nz, nc, nx, ny_gl, nz_gl
 
-  USE sn_module, ONLY: nang
+  USE sn_module, ONLY: nang, noct
 
   USE data_module, ONLY: ng
 
@@ -21,7 +21,7 @@ MODULE sweep_module
   USE octsweep_module, ONLY: octsweep
 
   USE solvar_module, ONLY: jb_in, jb_out, kb_in, kb_out, flkx, flky,   &
-    flkz
+    flkz, ptr_out
 
   USE plib_module, ONLY: ylop, yhip, zlop, zhip, firsty, lasty, firstz,&
     lastz, g_off, ichunk, ycomm, zcomm, psend, precv, yproc, zproc,    &
@@ -75,6 +75,13 @@ MODULE sweep_module
     INTEGER(i_knd), DIMENSION(ng) :: grp_act
 
     LOGICAL(l_knd) :: use_lock
+!_______________________________________________________________________
+!
+!   Local memory for the OpenCL sweep result
+!_______________________________________________________________________
+
+    REAL(r_knd), DIMENSION(:,:,:,:,:,:), POINTER :: ocl_flux
+    ALLOCATE( ocl_flux(nang,nx,ny_gl,nz_gl,noct,ng) )
 !_______________________________________________________________________
 !
 !   Set up OpenMP lock if necessary.
@@ -263,6 +270,24 @@ MODULE sweep_module
 !_______________________________________________________________________
 
     IF ( use_lock) CALL plock_omp ( 'destroy' )
+
+!_______________________________________________________________________
+!
+!   Do one octant sweep on the OpenCL device
+!_______________________________________________________________________
+
+    CALL sweep_octant
+
+!_______________________________________________________________________
+!
+!   TODO
+!   Check that the OpenCL sweep of the octant matches the original
+!_______________________________________________________________________
+
+  CALL get_output_flux ( ocl_flux )
+  PRINT *, ocl_flux(:,1,5,1,1,4)
+  PRINT *, "done printing"
+  PRINT *, ptr_out(:,1,5,1,1,4)
 !_______________________________________________________________________
 !_______________________________________________________________________
 

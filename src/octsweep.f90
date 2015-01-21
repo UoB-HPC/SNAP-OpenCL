@@ -12,11 +12,11 @@ MODULE octsweep_module
 
   USE global_module, ONLY: i_knd, r_knd, zero
 
-  USE geom_module, ONLY: nc, ndimen, dinv, nx, ny, nz, hi, hj, hk
+  USE geom_module, ONLY: nc, ndimen, dinv, nx, ny, nz
 
-  USE sn_module, ONLY: ec, nang, wmu, weta, wxi, cmom, noct, mu
+  USE sn_module, ONLY: ec, nang, wmu, weta, wxi
 
-  USE data_module, ONLY: vdelt, ng
+  USE data_module, ONLY: vdelt
 
   USE control_module, ONLY: timedep
 
@@ -26,8 +26,6 @@ MODULE octsweep_module
   USE dim1_sweep_module, ONLY: dim1_sweep
 
   USE dim3_sweep_module, ONLY: dim3_sweep
-
-  USE plib_module, ONLY: ichunk
 
   IMPLICIT NONE
 
@@ -54,16 +52,6 @@ MODULE octsweep_module
 !_______________________________________________________________________
 
     INTEGER(i_knd) :: id, oct, ich, d1, d2, d3, d4, i1, i2
-
-!_______________________________________________________________________
-!
-!   Local memory for the OpenCL sweep result
-!_______________________________________________________________________
-
-    REAL(r_knd), DIMENSION(:,:,:,:,:,:), POINTER :: ocl_flux
-    INTEGER(i_knd) :: a, i, j, k, gg
-    ALLOCATE( ocl_flux(nang,nx,ny,nz,noct,ng) )
-
 !_______________________________________________________________________
 !
 !   Determine octant and chunk index.
@@ -91,22 +79,6 @@ MODULE octsweep_module
     END IF
 !_______________________________________________________________________
 !
-!   As the groups are batched in SNAP, we do the sweep on the OpenCL
-!   device many times, so we need to zero out the edge flux arrays
-!_______________________________________________________________________
-
-
-    CALL zero_edge_flux_buffers
-
-!_______________________________________________________________________
-!
-!   Do one octant sweep on the OpenCL device
-!_______________________________________________________________________
-
-    CALL sweep_octant
-
-!_______________________________________________________________________
-!
 !   Call for the actual sweeper. Ensure proper size/bounds of time-dep
 !   arrays is given to avoid errors.
 !_______________________________________________________________________
@@ -126,33 +98,6 @@ MODULE octsweep_module
         kb_out(:,:,:,g), wmu, weta, wxi, flkx(:,:,:,g), flky(:,:,:,g), &
         flkz(:,:,:,g), t_xs(:,:,:,g) )
     END IF
-
-!_______________________________________________________________________
-!
-!   TODO
-!   Check that the OpenCL sweep of the octant matches the original
-!_______________________________________________________________________
-
-  CALL get_output_flux ( ocl_flux )
-
-  DO gg = 1, ng
-    DO k = 1, nz
-      DO j = 1, ny
-        DO i = 1, ichunk
-          DO a = 1, nang
-            IF ( ABS( ocl_flux(a,i,j,k,1,g) - ptr_out(a,i,j,k,1,g) ) > 1.0E-12_r_knd ) THEN
-              PRINT *, "FLUX INCORRECT", a, i, j, k, gg
-              STOP
-            END IF
-          END DO
-        END DO
-      END DO
-    END DO
-  END DO
-
-  DEALLOCATE( ocl_flux )
-  STOP
-
 !_______________________________________________________________________
 !_______________________________________________________________________
 
