@@ -2,6 +2,7 @@
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 
 #define flux_out(a,i,j,k,o,g) flux_out[a+(nang*i)+(nang*nx*j)+(nang*nx*ny*k)+(nang*nx*ny*nz*o)+(nang*nx*ny*nz*noct*g)]
+#define flux_in(a,i,j,k,o,g) flux_in[a+(nang*i)+(nang*nx*j)+(nang*nx*ny*k)+(nang*nx*ny*nz*o)+(nang*nx*ny*nz*noct*g)]
 #define source(m,i,j,k) source[m+(cmom*i)+(cmom*nx*j)+(cmom*nx*ny*k)]
 #define flux_i(a,j,k,g) flux_i[a+(nang*j)+(nang*ny*k)+(nang*ny*nz*g)]
 #define flux_j(a,i,k,g) flux_j[a+(nang*i)+(nang*nx*k)+(nang*nx*nz*g)]
@@ -11,6 +12,7 @@
 #define dd_k(a) dd_k[a]
 #define mu(a) mu[a]
 #define scat_coef(a,m,o) scat_coef[a+(nang*m)+(nang*cmom*o)]
+#define time_delta(g) time_delta[g]
 
 // Solve the transport equations for a single angle in a single cell for a single group
 __kernel void sweep_cell(
@@ -36,6 +38,7 @@ __kernel void sweep_cell(
     __global double *dd_k,
     __global double *mu,
     __global double *scat_coef,
+    __global double *time_delta,
 
     // Angular flux
     __global double *flux_in,
@@ -60,7 +63,6 @@ __kernel void sweep_cell(
     // This means that we only consider the case for one MPI task
     // at present.
 
-    // Time independant
     // NO fixup
 
     // Compute angular source
@@ -74,12 +76,25 @@ __kernel void sweep_cell(
     }
 
     psi += flux_i(a_idx,j,k,g_idx)*mu(a_idx)*dd_i + flux_j(a_idx,i,k,g_idx)*dd_j(a_idx) + flux_k(a_idx,i,j,g_idx)*dd_k(a_idx);
+
+    // Add contribution from last timestep flux if time-dependant
+    if (time_delta(g_idx) != 0.0)
+    {
+        psi += time_delta(g_idx) * flux_in(a_idx,i,j,k,oct,g_idx);
+    }
+
     psi *= denom(a_idx,i,j,k,g_idx);
 
     // Compute upwind fluxes
     flux_i(a_idx,j,k,g_idx) = 2.0*psi - flux_i(a_idx,j,k,g_idx);
     flux_j(a_idx,i,k,g_idx) = 2.0*psi - flux_j(a_idx,i,k,g_idx);
     flux_k(a_idx,i,j,g_idx) = 2.0*psi - flux_k(a_idx,i,j,g_idx);
+
+    // Time differencing on final flux value
+    if (time_delta(g_idx) != 0.0)
+    {
+        psi = 2.0 * psi - flux_in(a_idx,i,j,k,oct,g_idx);
+    }
 
     flux_out(a_idx,i,j,k,oct,g_idx) = psi;
     return;

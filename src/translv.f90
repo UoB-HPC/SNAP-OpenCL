@@ -214,6 +214,7 @@ SUBROUTINE translv
 
       CALL copy_denom_to_device ( dinv )
       CALL copy_coefficients_to_device ( hi, hj, hk )
+      CALL copy_time_delta_to_device ( vdelt )
 
 !_______________________________________________________________________
 !

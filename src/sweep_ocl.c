@@ -35,6 +35,7 @@ cl_mem d_dd_j;
 cl_mem d_dd_k;
 cl_mem d_mu;
 cl_mem d_scat_coeff;
+cl_mem d_time_delta;
 
 // Check OpenCL errors and exit if no success
 void check_error(cl_int err, char *msg)
@@ -152,7 +153,11 @@ void opencl_teardown_(void)
 }
 
 
+// Forward declare to zero buffer functions
 void zero_edge_flux_buffers_(void);
+void zero_centre_flux_in_buffer_(void);
+
+
 
 // Create buffers and copy the flux, source and
 // cross section arrays to the OpenCL device
@@ -164,7 +169,8 @@ void zero_edge_flux_buffers_(void);
 // ichunk is the number of yz planes in the KBA decomposition
 // dd_i, dd_j(nang), dd_k(nang) is the x,y,z (resp) dianond difference coefficients
 // mu(nang) is x-direction cosines
-// ec(nang,cmom,noct) - Scattering expansion coefficients
+// scat_coef [ec](nang,cmom,noct) - Scattering expansion coefficients
+// time_delta [vdelt](ng)              - time-absorption coefficient
 // flux_in(nang,nx,ny,nz,noct,ng)   - Incoming time-edge flux pointer
 // denom(nang,nx,ny,nz,ng) - Sweep denominator, pre-computed/inverted
 int nx, ny, nz, ng, nang, noct, cmom, ichunk;
@@ -191,13 +197,11 @@ void copy_to_device_(
 
     d_flux_in = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang*nx*ny*nz*noct*ng, NULL, &err);
     check_error(err, "Creating flux_in buffer");
-    printf("helloooo\n");
-    err = clEnqueueWriteBuffer(queue, d_flux_in, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, flux_in, 0, NULL, NULL);
-    check_error(err, "Copying flux_in to device");
-    printf("loool\n");
 
     d_flux_out = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(double)*nang*nx*ny*nz*noct*ng, NULL, &err);
     check_error(err, "Creating flux_out buffer");
+
+    zero_centre_flux_in_buffer_();
 
     // flux_i(nang,ny,nz,ng)     - Working psi_x array (edge pointers)
     // flux_j(nang,ichunk,nz,ng) - Working psi_y array
@@ -233,6 +237,9 @@ void copy_to_device_(
     d_source = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*cmom*nx*ny*nz*ng, NULL, &err);
     check_error(err, "Creating source buffer");
 
+    d_time_delta = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*ng, NULL, &err);
+    check_error(err, "Creating time_delta buffer");
+
 }
 
 // Copy the source term to the OpenCL device
@@ -264,23 +271,39 @@ void copy_coefficients_to_device_(double *dd_i_, double *dd_j, double *dd_k)
     check_error(err, "Copying dd_k buffer");
 }
 
+void copy_time_delta_to_device_(double *time_delta)
+{
+    cl_int err;
+    err = clEnqueueWriteBuffer(queue, d_time_delta, CL_TRUE, 0, sizeof(double)*ng, time_delta, 0, NULL, NULL);
+    check_error(err, "Copying time_delta buffer");
+}
+
 void zero_edge_flux_buffers_(void)
 {
     cl_int err;
     double *zero = (double *)calloc(sizeof(double),nang*ny*nz*ng);
     err = clEnqueueWriteBuffer(queue, d_flux_i, CL_TRUE, 0, sizeof(double)*nang*ny*nz*ng, zero, 0, NULL, NULL);
-    check_error(err, "Zeroing flux_i buffer");
     free(zero);
+    check_error(err, "Zeroing flux_i buffer");
 
     zero = (double *)calloc(sizeof(double),nang*nx*nz*ng);
     err = clEnqueueWriteBuffer(queue, d_flux_j, CL_TRUE, 0, sizeof(double)*nang*nx*nz*ng, zero, 0, NULL, NULL);
-    check_error(err, "Zeroing flux_j buffer");
     free(zero);
+    check_error(err, "Zeroing flux_j buffer");
 
     zero = (double *)calloc(sizeof(double),nang*nx*ny*ng);
     err = clEnqueueWriteBuffer(queue, d_flux_k, CL_TRUE, 0, sizeof(double)*nang*nx*ny*ng, zero, 0, NULL, NULL);
-    check_error(err, "Zeroing flux_k buffer");
     free(zero);
+    check_error(err, "Zeroing flux_k buffer");
+}
+
+void zero_centre_flux_in_buffer_(void)
+{
+    cl_int err;
+    double *zero = (double *)calloc(sizeof(double),nang*nx*ny*nz*noct*ng);
+    err = clEnqueueWriteBuffer(queue, d_flux_in, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, zero, 0, NULL, NULL);
+    free(zero);
+    check_error(err, "Copying flux_in to device");
 }
 
 struct cell {
@@ -374,17 +397,18 @@ void sweep_octant_(void)
     err |= clSetKernelArg(k_sweep_cell, 14, sizeof(cl_mem), &d_dd_k);
     err |= clSetKernelArg(k_sweep_cell, 15, sizeof(cl_mem), &d_mu);
     err |= clSetKernelArg(k_sweep_cell, 16, sizeof(cl_mem), &d_scat_coeff);
+    err |= clSetKernelArg(k_sweep_cell, 17, sizeof(cl_mem), &d_time_delta);
 
-    err |= clSetKernelArg(k_sweep_cell, 17, sizeof(cl_mem), &d_flux_in);
-    err |= clSetKernelArg(k_sweep_cell, 18, sizeof(cl_mem), &d_flux_out);
+    err |= clSetKernelArg(k_sweep_cell, 18, sizeof(cl_mem), &d_flux_in);
+    err |= clSetKernelArg(k_sweep_cell, 19, sizeof(cl_mem), &d_flux_out);
 
-    err |= clSetKernelArg(k_sweep_cell, 19, sizeof(cl_mem), &d_flux_i);
-    err |= clSetKernelArg(k_sweep_cell, 20, sizeof(cl_mem), &d_flux_j);
-    err |= clSetKernelArg(k_sweep_cell, 21, sizeof(cl_mem), &d_flux_k);
+    err |= clSetKernelArg(k_sweep_cell, 20, sizeof(cl_mem), &d_flux_i);
+    err |= clSetKernelArg(k_sweep_cell, 21, sizeof(cl_mem), &d_flux_j);
+    err |= clSetKernelArg(k_sweep_cell, 22, sizeof(cl_mem), &d_flux_k);
 
 
-    err |= clSetKernelArg(k_sweep_cell, 22, sizeof(cl_mem), &d_source);
-    err |= clSetKernelArg(k_sweep_cell, 23, sizeof(cl_mem), &d_denom);
+    err |= clSetKernelArg(k_sweep_cell, 23, sizeof(cl_mem), &d_source);
+    err |= clSetKernelArg(k_sweep_cell, 24, sizeof(cl_mem), &d_denom);
     check_error(err, "Set sweep_cell kernel args");
 
     double tic = omp_get_wtime();
