@@ -10,6 +10,7 @@
 #define dd_j(a) dd_j[a]
 #define dd_k(a) dd_k[a]
 #define mu(a) mu[a]
+#define scat_coef(a,m,o) scat_coef[a+(nang*m)+(nang*cmom*o)]
 
 // Solve the transport equations for a single angle in a single cell for a single group
 __kernel void sweep_cell(
@@ -34,6 +35,7 @@ __kernel void sweep_cell(
     __global double *dd_j,
     __global double *dd_k,
     __global double *mu,
+    __global double *scat_coef,
 
     // Angular flux
     __global double *flux_in,
@@ -58,13 +60,19 @@ __kernel void sweep_cell(
     // This means that we only consider the case for one MPI task
     // at present.
 
-    // Isotropic
     // Time independant
     // NO fixup
 
     // Compute angular source
-    // (1 in first position is scattering moment)
-    double psi = source(1,i,j,k);
+    // Begin with first scattering moment)
+    double psi = source(0,i,j,k);
+
+    // Add in the anisotropic scattering source moments
+    for (int l = 1; l < cmom; l++)
+    {
+        psi += scat_coef(a_idx,l,oct) * source(l,i,j,k);
+    }
+
     psi += flux_i(a_idx,j,k,g_idx)*mu(a_idx)*dd_i + flux_j(a_idx,i,k,g_idx)*dd_j(a_idx) + flux_k(a_idx,i,j,g_idx)*dd_k(a_idx);
     psi *= denom(a_idx,i,j,k,g_idx);
 

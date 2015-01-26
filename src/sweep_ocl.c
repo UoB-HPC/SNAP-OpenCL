@@ -34,6 +34,7 @@ cl_mem d_denom;
 cl_mem d_dd_j;
 cl_mem d_dd_k;
 cl_mem d_mu;
+cl_mem d_scat_coeff;
 
 // Check OpenCL errors and exit if no success
 void check_error(cl_int err, char *msg)
@@ -163,6 +164,7 @@ void zero_edge_flux_buffers_(void);
 // ichunk is the number of yz planes in the KBA decomposition
 // dd_i, dd_j(nang), dd_k(nang) is the x,y,z (resp) dianond difference coefficients
 // mu(nang) is x-direction cosines
+// ec(nang,cmom,noct) - Scattering expansion coefficients
 // flux_in(nang,nx,ny,nz,noct,ng)   - Incoming time-edge flux pointer
 // denom(nang,nx,ny,nz,ng) - Sweep denominator, pre-computed/inverted
 int nx, ny, nz, ng, nang, noct, cmom, ichunk;
@@ -171,7 +173,7 @@ void copy_to_device_(
     int *nx_, int *ny_, int *nz_,
     int *ng_, int *nang_, int *noct_, int *cmom_,
     int *ichunk_,
-    double *mu,
+    double *mu, double *scat_coef,
     double *flux_in)
 {
     // Save problem size information to globals
@@ -220,6 +222,9 @@ void copy_to_device_(
 
     d_mu = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang, mu, &err);
     check_error(err, "Creating mu buffer");
+
+    d_scat_coeff = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang*cmom*noct, scat_coef, &err);
+    check_error(err, "Creating scat_coef buffer");
 
     // Create buffers written to later
     d_denom = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang*nx*ny*nz*ng, NULL, &err);
@@ -368,17 +373,18 @@ void sweep_octant_(void)
     err |= clSetKernelArg(k_sweep_cell, 13, sizeof(cl_mem), &d_dd_j);
     err |= clSetKernelArg(k_sweep_cell, 14, sizeof(cl_mem), &d_dd_k);
     err |= clSetKernelArg(k_sweep_cell, 15, sizeof(cl_mem), &d_mu);
+    err |= clSetKernelArg(k_sweep_cell, 16, sizeof(cl_mem), &d_scat_coeff);
 
-    err |= clSetKernelArg(k_sweep_cell, 16, sizeof(cl_mem), &d_flux_in);
-    err |= clSetKernelArg(k_sweep_cell, 17, sizeof(cl_mem), &d_flux_out);
+    err |= clSetKernelArg(k_sweep_cell, 17, sizeof(cl_mem), &d_flux_in);
+    err |= clSetKernelArg(k_sweep_cell, 18, sizeof(cl_mem), &d_flux_out);
 
-    err |= clSetKernelArg(k_sweep_cell, 18, sizeof(cl_mem), &d_flux_i);
-    err |= clSetKernelArg(k_sweep_cell, 19, sizeof(cl_mem), &d_flux_j);
-    err |= clSetKernelArg(k_sweep_cell, 20, sizeof(cl_mem), &d_flux_k);
+    err |= clSetKernelArg(k_sweep_cell, 19, sizeof(cl_mem), &d_flux_i);
+    err |= clSetKernelArg(k_sweep_cell, 20, sizeof(cl_mem), &d_flux_j);
+    err |= clSetKernelArg(k_sweep_cell, 21, sizeof(cl_mem), &d_flux_k);
 
 
-    err |= clSetKernelArg(k_sweep_cell, 21, sizeof(cl_mem), &d_source);
-    err |= clSetKernelArg(k_sweep_cell, 22, sizeof(cl_mem), &d_denom);
+    err |= clSetKernelArg(k_sweep_cell, 22, sizeof(cl_mem), &d_source);
+    err |= clSetKernelArg(k_sweep_cell, 23, sizeof(cl_mem), &d_denom);
     check_error(err, "Set sweep_cell kernel args");
 
     double tic = omp_get_wtime();

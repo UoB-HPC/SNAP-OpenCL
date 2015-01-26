@@ -15,7 +15,7 @@ SUBROUTINE translv
   USE geom_module, ONLY: geom_alloc, geom_dealloc, dinv, param_calc,   &
     nx, ny_gl, nz_gl, diag_setup, hi, hj, hk
 
-  USE sn_module, ONLY: nang, noct, mu, eta, xi, cmom
+  USE sn_module, ONLY: nang, noct, mu, eta, xi, cmom, ec
 
   USE data_module, ONLY: ng, v, vdelt, mat, sigt, siga, slgg, src_opt, &
     qim
@@ -113,7 +113,7 @@ SUBROUTINE translv
 !   Copy the problem sizes and constant arrays to OpenCL device
 !_______________________________________________________________________
 
-  CALL copy_to_device ( nx, ny_gl, nz_gl, ng, nang, noct, cmom, ichunk, mu, ptr_in )
+  CALL copy_to_device ( nx, ny_gl, nz_gl, ng, nang, noct, cmom, ichunk, mu, ec, ptr_in )
 
 !_______________________________________________________________________
 !
