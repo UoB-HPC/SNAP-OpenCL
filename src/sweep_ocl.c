@@ -167,7 +167,7 @@ void zero_centre_flux_in_buffer_(void);
 // ng is the number of energy groups
 // cmom is the "computational number of moments"
 // ichunk is the number of yz planes in the KBA decomposition
-// dd_i, dd_j(nang), dd_k(nang) is the x,y,z (resp) dianond difference coefficients
+// dd_i, dd_j(nang), dd_k(nang) is the x,y,z (resp) diamond difference coefficients
 // mu(nang) is x-direction cosines
 // scat_coef [ec](nang,cmom,noct) - Scattering expansion coefficients
 // time_delta [vdelt](ng)              - time-absorption coefficient
@@ -260,7 +260,7 @@ void copy_denom_to_device_(double *denom)
 
 }
 
-void copy_coefficients_to_device_(double *dd_i_, double *dd_j, double *dd_k)
+void copy_dd_coefficients_to_device_(double *dd_i_, double *dd_j, double *dd_k)
 {
     d_dd_i = *dd_i_;
     cl_int err;
