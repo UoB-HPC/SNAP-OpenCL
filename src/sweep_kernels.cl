@@ -17,6 +17,7 @@ __kernel void sweep_cell(
     const unsigned int i,
     const unsigned int j,
     const unsigned int k,
+    const unsigned int oct,
 
     // Problem sizes
     const unsigned int ichunk,
@@ -52,14 +53,13 @@ __kernel void sweep_cell(
     int a_idx = get_global_id(0);
     int g_idx = get_global_id(1);
 
-    // TODO: Allow the octant to be determined by an argument
-    int oct = 0;
-
     // Assume transmissive (vacuum boundaries) and that we
     // are sweeping the whole grid so have access to all neighbours
     // This means that we only consider the case for one MPI task
     // at present.
+
     // Isotropic
+    // Time independant
     // NO fixup
 
     // Compute angular source
