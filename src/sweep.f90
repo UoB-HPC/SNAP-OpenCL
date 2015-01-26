@@ -276,6 +276,7 @@ MODULE sweep_module
 !   Do one octant sweep on the OpenCL device
 !_______________________________________________________________________
 
+    CALL zero_edge_flux_buffers
     CALL sweep_octant
 
 !_______________________________________________________________________
