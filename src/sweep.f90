@@ -66,7 +66,7 @@ MODULE sweep_module
 !   Local variables
 !_______________________________________________________________________
 
-    INTEGER(i_knd) :: jd, kd, jlo, jhi, jst, klo, khi, kst, g, iop, i
+    INTEGER(i_knd) :: jd, kd, jlo, jhi, jst, klo, khi, kst, g, iop, i, o
 
     INTEGER(i_knd), DIMENSION(1) :: gnext
 
@@ -289,6 +289,14 @@ MODULE sweep_module
   PRINT *, ocl_flux(:,1,5,1,1,4)
   PRINT *, "done printing"
   PRINT *, ptr_out(:,1,5,1,1,4)
+
+  DO o = 1, noct
+    IF ( ALL ( ABS ( ocl_flux(:,:,:,:,o,:) - ptr_out(:,:,:,:,o,:) ) < 1.0E-14_r_knd ) ) THEN
+      PRINT *, "Octant", o, "matched"
+    ELSE
+      PRINT *, "Octant", o, "did NOT match"
+    END IF
+  END DO
 !_______________________________________________________________________
 !_______________________________________________________________________
 
