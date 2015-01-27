@@ -113,7 +113,7 @@ SUBROUTINE translv
 !   Copy the problem sizes and constant arrays to OpenCL device
 !_______________________________________________________________________
 
-  CALL copy_to_device ( nx, ny_gl, nz_gl, ng, nang, noct, cmom, ichunk, mu, ec, ptr_in )
+  CALL copy_to_device ( nx, ny_gl, nz_gl, ng, nang, noct, cmom, ichunk, mu, ec, t_xs, ptr_in )
 
 !_______________________________________________________________________
 !
