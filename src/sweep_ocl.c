@@ -371,19 +371,39 @@ plane *compute_sweep_order(void)
 // Kernel: cell
 // Work-group: energy group
 // Work-item: angle
-void sweep_octant_(void)
+void enqueue_octant(const unsigned int oct, const unsigned int ndiag, const plane *planes)
 {
+    // Determine the cell step parameters for the given octant
+    // Create the list of octant co-ordinates in order
+
+    // This first bit string assumes 3 reflective boundaries
+    //int order_3d = 0b000001010100110101011111;
+
+    // This bit string is lexiographically organised
+    // This is the order to match the original SNAP
+    // However this required all vacuum boundaries
+    int order_3d = 0b000001010011100101110111;
+
+    int order_2d = 0b11100100;
+
+    // Use the bit mask to get the right values for starting positions of the sweep
+    int xhi = ((order_3d >> (oct * 3)) & 1) ? nx : 0;
+    int yhi = ((order_3d >> (oct * 3 + 1)) & 1) ? ny : 0;
+    int zhi = ((order_3d >> (oct * 3 + 2)) & 1) ? nz : 0;
+
+    // Set the order you traverse each axis
+    int istep = (xhi == nx) ? -1 : 0;
+    int jstep = (yhi == ny) ? -1 : 0;
+    int kstep = (zhi == nz) ? -1 : 0;
+
+
     cl_int err;
 
-    // Number of planes in this octant
-    unsigned int ndiag = ichunk + ny + nz - 2;
+    const size_t global[2] = {nang, ng};
 
-    // Get the order of cells to enqueue
-    plane *planes = compute_sweep_order();
-
-    const size_t global[] = {nang,ng};
-
-    err = clSetKernelArg(k_sweep_cell, 4, sizeof(int), &ichunk);
+    // Set the kernel arguments
+    err = clSetKernelArg(k_sweep_cell, 3, sizeof(unsigned int), &oct);
+    err |= clSetKernelArg(k_sweep_cell, 4, sizeof(int), &ichunk);
     err |= clSetKernelArg(k_sweep_cell, 5, sizeof(int), &nx);
     err |= clSetKernelArg(k_sweep_cell, 6, sizeof(int), &ny);
     err |= clSetKernelArg(k_sweep_cell, 7, sizeof(int), &nz);
@@ -411,41 +431,54 @@ void sweep_octant_(void)
     err |= clSetKernelArg(k_sweep_cell, 24, sizeof(cl_mem), &d_denom);
     check_error(err, "Set sweep_cell kernel args");
 
-    double tic = omp_get_wtime();
-
-    // Enqueue kernels
-    // Octant 1
-    unsigned int oct = 0;
-    clSetKernelArg(k_sweep_cell, 3, sizeof(unsigned int), &oct);
-    for (int d = ndiag-1; d >= 0; d--)
+    // Loop over the diagonal wavefronts
+    for (unsigned int d = 0; d < ndiag; d++)
     {
-        for (unsigned int j = 0; j < planes[d].num_cells; j++)
+        // Loop through the list of cells in this plane
+        for (unsigned int l = 0; l < planes[d].num_cells; l++)
         {
-            err = clSetKernelArg(k_sweep_cell, 0, sizeof(unsigned int), &planes[d].cells[j].i);
-            err |= clSetKernelArg(k_sweep_cell, 1, sizeof(unsigned int), &planes[d].cells[j].j);
-            err |= clSetKernelArg(k_sweep_cell, 2, sizeof(unsigned int), &planes[d].cells[j].k);
+            // Calculate the real cell index for this octant
+            int i = planes[d].cells[l].i;
+            int j = planes[d].cells[l].j;
+            int k = planes[d].cells[l].k;
+            if (istep < 0)
+                i = nx - i - 1;
+            if (jstep < 0)
+                j = ny - j - 1;
+            if (kstep < 0)
+                k = nz - k - 1;
+
+            // Set kernel args for cell index
+            err = clSetKernelArg(k_sweep_cell, 0, sizeof(unsigned int), &i);
+            err |= clSetKernelArg(k_sweep_cell, 1, sizeof(unsigned int), &j);
+            err |= clSetKernelArg(k_sweep_cell, 2, sizeof(unsigned int), &k);
             check_error(err, "Setting sweep_cell kernel args cell positions");
 
+            // Enqueue the kernel
             err = clEnqueueNDRangeKernel(queue, k_sweep_cell, 2, 0, global, NULL, 0, NULL, NULL);
             check_error(err, "Enqueue sweep_cell kernel");
         }
     }
-    zero_edge_flux_buffers_();
-    // Octant 8
-    oct = 7;
-    clSetKernelArg(k_sweep_cell, 3, sizeof(unsigned int), &oct);
-    for (int d = 0; d < ndiag; d++)
-    {
-        for (unsigned int j = 0; j < planes[d].num_cells; j++)
-        {
-            err = clSetKernelArg(k_sweep_cell, 0, sizeof(unsigned int), &planes[d].cells[j].i);
-            err |= clSetKernelArg(k_sweep_cell, 1, sizeof(unsigned int), &planes[d].cells[j].j);
-            err |= clSetKernelArg(k_sweep_cell, 2, sizeof(unsigned int), &planes[d].cells[j].k);
-            check_error(err, "Setting sweep_cell kernel args cell positions");
 
-            err = clEnqueueNDRangeKernel(queue, k_sweep_cell, 2, 0, global, NULL, 0, NULL, NULL);
-            check_error(err, "Enqueue sweep_cell kernel");
-        }
+}
+
+// Perform a sweep over the grid for all the octants
+void ocl_sweep_(void)
+{
+    cl_int err;
+
+    // Number of planes in this octant
+    unsigned int ndiag = ichunk + ny + nz - 2;
+
+    // Get the order of cells to enqueue
+    plane *planes = compute_sweep_order();
+
+    double tic = omp_get_wtime();
+
+    for (int o = 0; o < noct; o++)
+    {
+        enqueue_octant(o, ndiag, planes);
+        zero_edge_flux_buffers_();
     }
 
     err = clFinish(queue);
@@ -455,7 +488,7 @@ void sweep_octant_(void)
 
     printf("Sweep took %lfs\n", toc-tic);
 
-    printf("Grind time: %lfns\n", 1000000000.0*(toc-tic)/(2*nx*ny*nz*nang*ng));
+    printf("Grind time: %lfns\n", 1000000000.0*(toc-tic)/(noct*nx*ny*nz*nang*ng));
 
     // Free planes
     for (unsigned int i = 0; i < ndiag; i++)
