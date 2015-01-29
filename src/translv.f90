@@ -44,11 +44,18 @@ SUBROUTINE translv
 
   CHARACTER(LEN=64) :: error
 
-  INTEGER(i_knd) :: cy, otno, ierr, g, i, tot_iits, cy_iits, out_iits
+  INTEGER(i_knd) :: cy, otno, ierr, g, i, tot_iits, cy_iits, out_iits, o
 
   REAL(r_knd) :: sf, time, t1, t2, t3, t4, t5, t6, t7, tmp
 
   REAL(r_knd), DIMENSION(:,:,:,:,:,:), POINTER :: ptr_tmp
+!_______________________________________________________________________
+!
+!   Local memory for the OpenCL sweep result
+!_______________________________________________________________________
+
+    REAL(r_knd), DIMENSION(:,:,:,:,:,:), POINTER :: ocl_flux
+    ALLOCATE( ocl_flux(nang,nx,ny_gl,nz_gl,noct,ng) )
 !_______________________________________________________________________
 !
 ! Call for data allocations. Some allocations depend on the problem
@@ -233,6 +240,28 @@ SUBROUTINE translv
       IF ( otrdone ) EXIT outer_loop
 
     END DO outer_loop
+
+!_______________________________________________________________________
+!
+!   Check that the OpenCL sweep of the octant matches the original
+!_______________________________________________________________________
+
+  CALL get_output_flux ( ocl_flux )
+
+  PRINT *, "GPU"
+  PRINT *, ocl_flux(:,nx,ny_gl,nz_gl,1,2)
+  PRINT *, "ORIG"
+  PRINT *, ptr_out(:,nx,ny_gl,nz_gl,1,2)
+
+  DO o = 1, noct
+    IF ( ALL ( ABS ( ocl_flux(:,:,:,:,o,:) - ptr_out(:,:,:,:,o,:) ) < 1.0E-14_r_knd ) ) THEN
+      PRINT *, "Octant", o, "matched"
+    ELSE
+      PRINT *, "Octant", o, "did NOT match"
+    END IF
+  END DO
+
+  DEALLOCATE( ocl_flux )
 
 !_______________________________________________________________________
 !
