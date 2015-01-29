@@ -3,7 +3,7 @@
 
 #define flux_out(a,i,j,k,o,g) flux_out[a+(nang*i)+(nang*nx*j)+(nang*nx*ny*k)+(nang*nx*ny*nz*o)+(nang*nx*ny*nz*noct*g)]
 #define flux_in(a,i,j,k,o,g) flux_in[a+(nang*i)+(nang*nx*j)+(nang*nx*ny*k)+(nang*nx*ny*nz*o)+(nang*nx*ny*nz*noct*g)]
-#define source(m,i,j,k) source[m+(cmom*i)+(cmom*nx*j)+(cmom*nx*ny*k)]
+#define source(m,i,j,k,g) source[m+(cmom*i)+(cmom*nx*j)+(cmom*nx*ny*k)+(cmom*nx*ny*nz*g)]
 #define flux_i(a,j,k,g) flux_i[a+(nang*j)+(nang*ny*k)+(nang*ny*nz*g)]
 #define flux_j(a,i,k,g) flux_j[a+(nang*i)+(nang*nx*k)+(nang*nx*nz*g)]
 #define flux_k(a,i,j,g) flux_k[a+(nang*i)+(nang*nx*j)+(nang*nx*ny*g)]
@@ -67,12 +67,12 @@ __kernel void sweep_cell(
 
     // Compute angular source
     // Begin with first scattering moment)
-    double psi = source(0,i,j,k);
+    double psi = source(0,i,j,k,g_idx);
 
     // Add in the anisotropic scattering source moments
     for (int l = 1; l < cmom; l++)
     {
-        psi += scat_coef(a_idx,l,oct) * source(l,i,j,k);
+        psi += scat_coef(a_idx,l,oct) * source(l,i,j,k,g_idx);
     }
 
     psi += flux_i(a_idx,j,k,g_idx)*mu(a_idx)*dd_i + flux_j(a_idx,i,k,g_idx)*dd_j(a_idx) + flux_k(a_idx,i,j,g_idx)*dd_k(a_idx);
