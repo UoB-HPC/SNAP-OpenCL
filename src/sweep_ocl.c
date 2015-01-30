@@ -22,6 +22,7 @@ cl_program program;
 
 // OpenCL kernels
 cl_kernel k_sweep_cell;
+cl_kernel k_reduce_angular;
 
 // OpenCL buffers
 cl_mem d_source;
@@ -36,6 +37,8 @@ cl_mem d_dd_k;
 cl_mem d_mu;
 cl_mem d_scat_coeff;
 cl_mem d_time_delta;
+cl_mem d_weights;
+cl_mem d_scalar_flux;
 
 // Check OpenCL errors and exit if no success
 void check_error(cl_int err, char *msg)
@@ -117,6 +120,9 @@ void opencl_setup_(void)
     k_sweep_cell = clCreateKernel(program, "sweep_cell", &err);
     check_error(err, "Creating kernel sweep_cell");
 
+    k_reduce_angular = clCreateKernel(program, "reduce_angular", &err);
+    check_error(err, "Creating kernel reduce_angular");
+
     free(platforms);
     printf("done\n");
 
@@ -173,6 +179,7 @@ void zero_centre_flux_in_buffer_(void);
 // time_delta [vdelt](ng)              - time-absorption coefficient
 // flux_in(nang,nx,ny,nz,noct,ng)   - Incoming time-edge flux pointer
 // denom(nang,nx,ny,nz,ng) - Sweep denominator, pre-computed/inverted
+// weights(nang) - angle weights for scalar reduction
 int nx, ny, nz, ng, nang, noct, cmom, ichunk;
 double d_dd_i;
 void copy_to_device_(
@@ -180,6 +187,7 @@ void copy_to_device_(
     int *ng_, int *nang_, int *noct_, int *cmom_,
     int *ichunk_,
     double *mu, double *scat_coef,
+    double *weights,
     double *flux_in)
 {
     // Save problem size information to globals
@@ -230,6 +238,9 @@ void copy_to_device_(
     d_scat_coeff = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang*cmom*noct, scat_coef, &err);
     check_error(err, "Creating scat_coef buffer");
 
+    d_weights = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang, weights, &err);
+    check_error(err, "Creating weights buffer");
+
     // Create buffers written to later
     d_denom = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang*nx*ny*nz*ng, NULL, &err);
     check_error(err, "Creating denom buffer");
@@ -239,6 +250,9 @@ void copy_to_device_(
 
     d_time_delta = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*ng, NULL, &err);
     check_error(err, "Creating time_delta buffer");
+
+    d_scalar_flux = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nx*ny*nz*ng, NULL, &err);
+    check_error(err, "Creating scalar_flux buffer");
 
 }
 
@@ -505,3 +519,47 @@ void get_output_flux_(double* flux_out)
     err = clEnqueueReadBuffer(queue, d_flux_out, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, flux_out, 0, NULL, NULL);
     check_error(err, "Reading d_flux_out");
 }
+
+// Enqueue the kernel to reduce the angular flux to the scalar flux
+void ocl_scalar_flux_(void)
+{
+    cl_int err;
+
+    const size_t global[3] = {nx, ny, nz};
+
+    double tic = omp_get_wtime();
+
+    err = clSetKernelArg(k_reduce_angular, 0, sizeof(unsigned int), &nx);
+    err |= clSetKernelArg(k_reduce_angular, 1, sizeof(unsigned int), &ny);
+    err |= clSetKernelArg(k_reduce_angular, 2, sizeof(unsigned int), &nz);
+    err |= clSetKernelArg(k_reduce_angular, 3, sizeof(unsigned int), &nang);
+    err |= clSetKernelArg(k_reduce_angular, 4, sizeof(unsigned int), &ng);
+    err |= clSetKernelArg(k_reduce_angular, 5, sizeof(unsigned int), &noct);
+
+    err |= clSetKernelArg(k_reduce_angular, 6, sizeof(cl_mem), &d_weights);
+    err |= clSetKernelArg(k_reduce_angular, 7, sizeof(cl_mem), &d_flux_out);
+    err |= clSetKernelArg(k_reduce_angular, 8, sizeof(cl_mem), &d_flux_in);
+    err |= clSetKernelArg(k_reduce_angular, 9, sizeof(cl_mem), &d_time_delta);
+    err |= clSetKernelArg(k_reduce_angular, 10, sizeof(cl_mem), &d_scalar_flux);
+    check_error(err, "Setting reduce_angular kernel arguments");
+
+    err = clEnqueueNDRangeKernel(queue, k_reduce_angular, 3, 0, global, NULL, 0, NULL, NULL);
+    check_error(err, "Enqueue reduce_angular kernel");
+
+    err = clFinish(queue);
+    check_error(err, "Finishing queue after reduce_angular kernel");
+
+    double toc = omp_get_wtime();
+
+    printf("Reduction took: %lfs\n", toc-tic);
+
+}
+
+// Copy the scalar flux value back to the host
+void get_scalar_flux_(double *scalar)
+{
+    cl_int err;
+    err = clEnqueueReadBuffer(queue, d_scalar_flux, CL_TRUE, 0, sizeof(double)*nx*ny*nz*ng, scalar, 0, NULL, NULL);
+    check_error(err, "Enqueue read scalar_flux buffer");
+}
+

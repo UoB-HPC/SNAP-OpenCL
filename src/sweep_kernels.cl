@@ -1,6 +1,7 @@
 
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 
+// Array indexing macros
 #define flux_out(a,i,j,k,o,g) flux_out[a+(nang*i)+(nang*nx*j)+(nang*nx*ny*k)+(nang*nx*ny*nz*o)+(nang*nx*ny*nz*noct*g)]
 #define flux_in(a,i,j,k,o,g) flux_in[a+(nang*i)+(nang*nx*j)+(nang*nx*ny*k)+(nang*nx*ny*nz*o)+(nang*nx*ny*nz*noct*g)]
 #define source(m,i,j,k,g) source[m+(cmom*i)+(cmom*nx*j)+(cmom*nx*ny*k)+(cmom*nx*ny*nz*g)]
@@ -13,6 +14,10 @@
 #define mu(a) mu[a]
 #define scat_coef(a,m,o) scat_coef[a+(nang*m)+(nang*cmom*o)]
 #define time_delta(g) time_delta[g]
+#define scalar(i,j,k,g) scalar[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)]
+#define weights(a) weights[a]
+#define angular(a,i,j,k,o,g) angular[a+(nang*i)+(nang*nx*j)+(nang*nx*ny*k)+(nang*nx*ny*nz*o)+(nang*nx*ny*nz*noct*g)]
+#define angular_prev(a,i,j,k,o,g) angular_prev[a+(nang*i)+(nang*nx*j)+(nang*nx*ny*k)+(nang*nx*ny*nz*o)+(nang*nx*ny*nz*noct*g)]
 
 // Solve the transport equations for a single angle in a single cell for a single group
 __kernel void sweep_cell(
@@ -99,3 +104,57 @@ __kernel void sweep_cell(
     flux_out(a_idx,i,j,k,oct,g_idx) = psi;
     return;
 }
+
+
+// Compute the scalar flux from the angular flux
+// Each work item is assigned a single cell
+// The work item loops over the energy groups
+// and the angles to create a single value
+// for each energy group per cell
+__kernel void reduce_angular(
+    const unsigned int nx,
+    const unsigned int ny,
+    const unsigned int nz,
+    const unsigned int nang,
+    const unsigned int ng,
+    const unsigned int noct,
+    __global double *weights,
+    __global double *angular,
+    __global double *angular_prev,
+    __global double *time_delta,
+    __global double *scalar)
+{
+    // Cell index
+    int i = get_global_id(0);
+    int j = get_global_id(1);
+    int k = get_global_id(2);
+
+    // For groups
+    for (unsigned int g = 0; g < ng; g++)
+    {
+        double tot_g = 0.0;
+        // For octants
+        for (unsigned int o = 0; o < noct; o++)
+        {
+            // For angles
+            for (unsigned int a = 0; a < nang; a++)
+            {
+                // NOTICE: we do the reduction with psi, not ptr_out.
+                // This means that (line 307) the time dependant
+                // case isnt the value that is summed, but rather the
+                // flux in the cell
+                // Note all work items will all take the same branch
+                if (time_delta(g) != 0.0)
+                {
+                    tot_g += weights(a) * (0.5 * (angular(a,i,j,k,o,g) + angular_prev(a,i,j,k,o,g)));
+                }
+                else
+                {
+                    tot_g += weights(a) * angular(a,i,j,k,o,g);
+                }
+            }
+        }
+        scalar(i,j,k,g) = tot_g;
+    }
+}
+

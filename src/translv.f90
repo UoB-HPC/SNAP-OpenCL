@@ -15,7 +15,7 @@ SUBROUTINE translv
   USE geom_module, ONLY: geom_alloc, geom_dealloc, dinv, param_calc,   &
     nx, ny_gl, nz_gl, diag_setup, hi, hj, hk
 
-  USE sn_module, ONLY: nang, noct, mu, eta, xi, cmom, ec
+  USE sn_module, ONLY: nang, noct, mu, eta, xi, cmom, ec, w
 
   USE data_module, ONLY: ng, v, vdelt, mat, sigt, siga, slgg, src_opt, &
     qim
@@ -54,8 +54,10 @@ SUBROUTINE translv
 !   Local memory for the OpenCL sweep result
 !_______________________________________________________________________
 
-    REAL(r_knd), DIMENSION(:,:,:,:,:,:), POINTER :: ocl_flux
-    ALLOCATE( ocl_flux(nang,nx,ny_gl,nz_gl,noct,ng) )
+    REAL(r_knd), DIMENSION(:,:,:,:,:,:), POINTER :: ocl_angular_flux
+    REAL(r_knd), DIMENSION(:,:,:,:), POINTER :: scalar_flux
+    ALLOCATE( ocl_angular_flux(nang,nx,ny_gl,nz_gl,noct,ng) )
+    ALLOCATE( scalar_flux(nx,ny_gl,nz_gl,ng) )
 !_______________________________________________________________________
 !
 ! Call for data allocations. Some allocations depend on the problem
@@ -120,7 +122,7 @@ SUBROUTINE translv
 !   Copy the problem sizes and constant arrays to OpenCL device
 !_______________________________________________________________________
 
-  CALL copy_to_device ( nx, ny_gl, nz_gl, ng, nang, noct, cmom, ichunk, mu, ec, ptr_in )
+  CALL copy_to_device ( nx, ny_gl, nz_gl, ng, nang, noct, cmom, ichunk, mu, ec, w, ptr_in )
 
 !_______________________________________________________________________
 !
@@ -246,22 +248,41 @@ SUBROUTINE translv
 !   Check that the OpenCL sweep of the octant matches the original
 !_______________________________________________________________________
 
-  CALL get_output_flux ( ocl_flux )
+  CALL get_output_flux ( ocl_angular_flux )
 
   PRINT *, "GPU"
-  PRINT *, ocl_flux(:,nx,ny_gl,nz_gl,1,2)
+  PRINT *, ocl_angular_flux(:,nx,ny_gl,nz_gl,1,1)
   PRINT *, "ORIG"
-  PRINT *, ptr_out(:,nx,ny_gl,nz_gl,1,2)
+  PRINT *, ptr_out(:,nx,ny_gl,nz_gl,1,1)
 
   DO o = 1, noct
-    IF ( ALL ( ABS ( ocl_flux(:,:,:,:,o,:) - ptr_out(:,:,:,:,o,:) ) < 1.0E-14_r_knd ) ) THEN
+    IF ( ALL ( ABS ( ocl_angular_flux(:,:,:,:,o,:) - ptr_out(:,:,:,:,o,:) ) < 1.0E-14_r_knd ) ) THEN
       PRINT *, "Octant", o, "matched"
     ELSE
       PRINT *, "Octant", o, "did NOT match"
     END IF
   END DO
 
-  DEALLOCATE( ocl_flux )
+  DEALLOCATE ( ocl_angular_flux )
+
+!_______________________________________________________________________
+!
+!   Compute the Scalar Flux from the angular flux using OpenCL
+!_______________________________________________________________________
+
+  CALL ocl_scalar_flux
+  CALL get_scalar_flux( scalar_flux )
+
+  IF ( ALL ( ABS ( scalar_flux - flux ) < 1.0E-14_r_knd ) ) THEN
+    PRINT *, "Scalar flux matched"
+  ELSE
+    PRINT *, "Scalar flux did not match"
+    PRINT *, scalar_flux
+    PRINT *, "Original"
+    PRINT *, flux
+  END IF
+
+  !DEALLOCATE ( scalar_flux )
 
 !_______________________________________________________________________
 !
