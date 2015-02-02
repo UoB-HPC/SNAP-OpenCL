@@ -32,7 +32,8 @@ SUBROUTINE translv
 
   USE outer_module, ONLY: outer
 
-  USE time_module, ONLY: tslv, wtime, tgrind, tparam
+  USE time_module, ONLY: tslv, wtime, tgrind, tparam,                  &
+    ocl_copy_time, ocl_sweep_time, ocl_reduc_time
 
   IMPLICIT NONE
 !_______________________________________________________________________
@@ -54,6 +55,8 @@ SUBROUTINE translv
 !   Local memory for the OpenCL sweep result
 !_______________________________________________________________________
 
+    REAL(r_knd) :: ocl_first_copy_tic, ocl_first_copy_toc
+    REAL(r_knd) :: ocl_update_tic, ocl_update_toc
     REAL(r_knd), DIMENSION(:,:,:,:,:,:), POINTER :: ocl_angular_flux
     REAL(r_knd), DIMENSION(:,:,:,:), POINTER :: scalar_flux
     ALLOCATE( ocl_angular_flux(nang,nx,ny_gl,nz_gl,noct,ng) )
@@ -115,7 +118,13 @@ SUBROUTINE translv
 !   Copy the problem sizes and constant arrays to OpenCL device
 !_______________________________________________________________________
 
+  CALL wtime ( ocl_first_copy_tic )
+
   CALL copy_to_device ( nx, ny_gl, nz_gl, ng, nang, noct, cmom, ichunk, mu, ec, w, ptr_in )
+
+  CALL wtime ( ocl_first_copy_toc )
+
+  WRITE ( *, 212 ) ( ocl_first_copy_toc-ocl_first_copy_tic )
 
 !_______________________________________________________________________
 !
@@ -214,9 +223,12 @@ SUBROUTINE translv
 !     Copy the dinv array just calculated to the device
 !_______________________________________________________________________
 
+      CALL wtime ( ocl_update_tic )
       CALL copy_denom_to_device ( dinv )
       CALL copy_dd_coefficients_to_device ( hi, hj, hk )
       CALL copy_time_delta_to_device ( vdelt )
+      CALL wtime ( ocl_update_toc )
+      ocl_copy_time = ocl_copy_time + ocl_update_toc - ocl_update_tic
 
 !_______________________________________________________________________
 !
@@ -270,9 +282,9 @@ SUBROUTINE translv
     PRINT *, "Scalar flux matched"
   ELSE
     PRINT *, "Scalar flux did not match"
-    PRINT *, scalar_flux
-    PRINT *, "Original"
-    PRINT *, flux
+    !PRINT *, scalar_flux
+    !PRINT *, "Original"
+    !PRINT *, flux
   END IF
 
   !DEALLOCATE ( scalar_flux )
@@ -313,6 +325,17 @@ SUBROUTINE translv
         * REAL( nang, r_knd ) * REAL( noct, r_knd )                    &
         * REAL( tot_iits, r_knd )
   tgrind = tslv*1.0E9_r_knd / tmp
+
+!_______________________________________________________________________
+!
+!   Print OpenCL timing information
+!_______________________________________________________________________
+
+    WRITE ( *, 213 ) ( ocl_copy_time )
+    WRITE ( *, 214 ) ( ocl_sweep_time )
+    WRITE ( *, 215 ) ( ocl_reduc_time )
+    WRITE ( *, 216 ) ( ocl_sweep_time*1.0E9_r_knd / tmp )
+
 !_______________________________________________________________________
 
   201 FORMAT( 10X, 'Iteration Monitor', /, 80A )
@@ -331,6 +354,14 @@ SUBROUTINE translv
   210 FORMAT( /, 1X, 30A, /, 2X, 'Total inners for all time steps, '   &
               'outers = ', I6 )
   211 FORMAT( /, 80A, / )
+
+!_______________________________________________________________________
+  212 FORMAT( 'OpenCL buffer init time: ', F10.3, 's' )
+  213 FORMAT( 'Time spent copying updated source: ', F10.3, 's')
+  214 FORMAT( 'OpenCL sweeps + scalar reduction: ', F10.3, 's')
+  215 FORMAT( 'OpenCL flux reduction time: ', F10.3, 's')
+  216 FORMAT( 'OpenCL grind time (for resident sweep): ', F10.3, 'ns')
+
 !_______________________________________________________________________
 !_______________________________________________________________________
 

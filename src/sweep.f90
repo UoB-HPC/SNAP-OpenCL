@@ -28,6 +28,8 @@ MODULE sweep_module
     nproc, nthreads, thread_level, thread_serialized, thread_multiple, &
     num_grth, plock_omp
 
+  USE time_module, ONLY: wtime, ocl_sweep_time, ocl_reduc_time
+
   IMPLICIT NONE
 
   PRIVATE
@@ -75,6 +77,8 @@ MODULE sweep_module
     INTEGER(i_knd), DIMENSION(ng) :: grp_act
 
     LOGICAL(l_knd) :: use_lock
+
+    REAL(r_knd) :: t1, t2, t3
 !_______________________________________________________________________
 !
 !   Set up OpenMP lock if necessary.
@@ -266,10 +270,16 @@ MODULE sweep_module
 
 !_______________________________________________________________________
 !
-!   Do one octant sweep on the OpenCL device
+!   Do a full sweep on the OpenCL device
 !_______________________________________________________________________
 
+    CALL wtime ( t1 )
     CALL ocl_sweep
+    CALL wtime ( t2 )
+    CALL ocl_scalar_flux
+    CALL wtime ( t3 )
+    ocl_sweep_time = ocl_sweep_time + t3 - t1
+    ocl_reduc_time = ocl_reduc_time + t3 - t2
 !_______________________________________________________________________
 !_______________________________________________________________________
 
