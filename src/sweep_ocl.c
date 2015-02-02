@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #ifdef __APPLE__
 #include <OpenCL/cl.h>
@@ -69,13 +70,13 @@ void check_build_error(cl_int err, char *msg)
 }
 
 
-void opencl_setup_(void)
+#define MAX_DEVICES 12
+#define MAX_INFO_STRING 128
+
+unsigned int get_devices(cl_device_id devices[MAX_DEVICES])
 {
-    printf("Setting up OpenCL environment...");
-
     cl_int err;
-
-    // Secure a platform
+    // Get platforms
     cl_uint num_platforms;
     err = clGetPlatformIDs(0, NULL, &num_platforms);
     check_error(err, "Finding platforms");
@@ -85,26 +86,105 @@ void opencl_setup_(void)
     err = clGetPlatformIDs(num_platforms, platforms, NULL);
     check_error(err, "Getting platforms");
 
-    // Get a device
-    cl_device_type type = CL_DEVICE_TYPE_CPU;
-    cl_platform_id platform;
+    // Get all devices
+    cl_uint num_devices = 0;
     for (unsigned int i = 0; i < num_platforms; i++)
     {
-        cl_uint num_devices = 0;
-        err = clGetDeviceIDs(platforms[i], type, 0, NULL, &num_devices);
-        if (num_devices > 0 && err == CL_SUCCESS)
-        {
-            err = clGetDeviceIDs(platforms[i], type, 1, &device, NULL);
-            platform = platforms[i];
-            check_error(err, "Securing a device");
-            break;
-        }
+        cl_uint num;
+        err = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, MAX_DEVICES-num_devices, devices+num_devices, &num);
+        check_error(err, "Getting devices");
+        num_devices += num;
     }
-    check_error(err, "Could not find a device");
+    return num_devices;
+}
+
+void list_devices(void)
+{
+    cl_device_id devices[MAX_DEVICES];
+    unsigned int num_devices = get_devices(devices);
+    printf("\nFound %d devices:\n", num_devices);
+    for (unsigned int i = 0; i < num_devices; i++)
+    {
+        char name[MAX_INFO_STRING];
+        cl_int err = clGetDeviceInfo(devices[i], CL_DEVICE_NAME, MAX_INFO_STRING, name, NULL);
+        check_error(err, "Getting device name");
+        printf("%d: %s\n", i, name);
+    }
+}
+
+void opencl_setup_(void)
+{
+    printf("Setting up OpenCL environment...\n\n");
+
+    cl_int err;
+
+    // Use the first device by default
+    int device_index = 0;
+
+    // Check for the OpenCL config file stored in SNAP_OCL env variable
+    char *file_path = getenv("SNAP_OCL");
+    if (file_path != NULL)
+    {
+        FILE *file = fopen(file_path, "r");
+        if (file == NULL)
+        {
+            fprintf(stderr, "Error: could not open OpenCL config file\n");
+            perror(file_path);
+            exit(-1);
+        }
+
+#define LINE_MAX 1024
+        char line[LINE_MAX];
+        while (fgets(line, LINE_MAX, file) != NULL)
+        {
+            printf("%s\n", line);
+            char *arg = strtok(line, "=");
+            if (arg == NULL)
+            {
+                fprintf(stderr, "Error: could not pass OpenCL config file\n");
+                exit(-1);
+            }
+            char *val = strtok(NULL, "=");
+            if (arg == NULL)
+            {
+                fprintf(stderr, "Error: could not pass OpenCL config file\n");
+                exit(-1);
+            }
+            printf("%s %s\n", arg, val);
+
+            if (strcmp(arg, "list") && strcmp(val, "1"))
+            {
+                // List the OpenCL devices and then quit
+                list_devices();
+                exit(1);
+            }
+            else if (strcmp(arg, "device"))
+            {
+                device_index = strtol(val, NULL, 10);
+            }
+            else
+            {
+                fprintf(stderr, "Error: unknown OpenCL argument %s\n", arg);
+                exit(-1);
+            }
+        }
+
+        fclose(file);
+    }
+
+    // Get the first or chosen device
+    cl_device_id devices[MAX_DEVICES];
+    unsigned int num_devices = get_devices(devices);
+    cl_device_id device = devices[device_index];
+
+    // Print device name
+    char name[MAX_INFO_STRING];
+    err = clGetDeviceInfo(device, CL_DEVICE_NAME, MAX_INFO_STRING, name, NULL);
+    check_error(err, "Getting device name");
+    printf("Running on %s\n", name);
 
     // Create a context
-    cl_context_properties properties[] = {CL_CONTEXT_PLATFORM, (cl_context_properties)platform, 0};
-    context = clCreateContext(properties, 1, &device, NULL, NULL, &err);
+    context = clCreateContext(0, 1, &device, NULL, NULL, &err);
     check_error(err, "Creating context");
 
     // Create command queues
@@ -130,8 +210,7 @@ void opencl_setup_(void)
     k_reduce_angular = clCreateKernel(program, "reduce_angular", &err);
     check_error(err, "Creating kernel reduce_angular");
 
-    free(platforms);
-    printf("done\n");
+    printf("\nOpenCL environment setup complete\n\n");
 
 }
 
