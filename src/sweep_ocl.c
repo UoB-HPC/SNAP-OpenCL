@@ -41,6 +41,9 @@ cl_mem d_time_delta;
 cl_mem d_weights;
 cl_mem d_scalar_flux;
 
+// Global variable for the timestep
+unsigned int global_timestep;
+
 // Check OpenCL errors and exit if no success
 void check_error(cl_int err, char *msg)
 {
@@ -392,7 +395,7 @@ plane *compute_sweep_order(void)
 // Kernel: cell
 // Work-group: energy group
 // Work-item: angle
-void enqueue_octant(const unsigned int oct, const unsigned int ndiag, const plane *planes)
+void enqueue_octant(const unsigned int timestep, const unsigned int oct, const unsigned int ndiag, const plane *planes)
 {
     // Determine the cell step parameters for the given octant
     // Create the list of octant co-ordinates in order
@@ -440,8 +443,19 @@ void enqueue_octant(const unsigned int oct, const unsigned int ndiag, const plan
     err |= clSetKernelArg(k_sweep_cell, 16, sizeof(cl_mem), &d_scat_coeff);
     err |= clSetKernelArg(k_sweep_cell, 17, sizeof(cl_mem), &d_time_delta);
 
-    err |= clSetKernelArg(k_sweep_cell, 18, sizeof(cl_mem), &d_flux_in);
-    err |= clSetKernelArg(k_sweep_cell, 19, sizeof(cl_mem), &d_flux_out);
+    // Swap the angular flux pointers if necessary
+    // Even timesteps: Read flux_in and write to flux_out
+    // Odd timesteps: Read flux_out and write to flux_in
+    if (timestep % 2 == 0)
+    {
+        err |= clSetKernelArg(k_sweep_cell, 18, sizeof(cl_mem), &d_flux_in);
+        err |= clSetKernelArg(k_sweep_cell, 19, sizeof(cl_mem), &d_flux_out);
+    }
+    else
+    {
+        err |= clSetKernelArg(k_sweep_cell, 18, sizeof(cl_mem), &d_flux_out);
+        err |= clSetKernelArg(k_sweep_cell, 19, sizeof(cl_mem), &d_flux_in);
+    }
 
     err |= clSetKernelArg(k_sweep_cell, 20, sizeof(cl_mem), &d_flux_i);
     err |= clSetKernelArg(k_sweep_cell, 21, sizeof(cl_mem), &d_flux_j);
@@ -508,7 +522,7 @@ void ocl_sweep_(void)
 
     for (int o = 0; o < noct; o++)
     {
-        enqueue_octant(o, ndiag, planes);
+        enqueue_octant(global_timestep, o, ndiag, planes);
         zero_edge_flux_buffers_();
     }
 
@@ -584,3 +598,8 @@ void get_scalar_flux_(double *scalar)
     check_error(err, "Enqueue read scalar_flux buffer");
 }
 
+// Set the global timestep variable to the current timestep
+void ocl_set_timestep_(const unsigned int *timestep)
+{
+    global_timestep = (*timestep) - 1;
+}

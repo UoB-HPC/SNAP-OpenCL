@@ -140,6 +140,9 @@ SUBROUTINE translv
 
   time_loop: DO cy = 1, nsteps
 
+    ! Set the timestep for the OpenCL calls
+    CALL ocl_set_timestep ( cy )
+
     CALL wtime ( t3 )
 
     vdelt = zero
