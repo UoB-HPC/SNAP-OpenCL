@@ -255,11 +255,6 @@ SUBROUTINE translv
 
   CALL get_output_flux ( ocl_angular_flux )
 
-  PRINT *, "GPU"
-  PRINT *, ocl_angular_flux(:,nx,ny_gl,nz_gl,1,1)
-  PRINT *, "ORIG"
-  PRINT *, ptr_out(:,nx,ny_gl,nz_gl,1,1)
-
   DO o = 1, noct
     IF ( ALL ( ABS ( ocl_angular_flux(:,:,:,:,o,:) - ptr_out(:,:,:,:,o,:) ) < 1.0E-14_r_knd ) ) THEN
       PRINT *, "Octant", o, "matched"
@@ -282,12 +277,9 @@ SUBROUTINE translv
     PRINT *, "Scalar flux matched"
   ELSE
     PRINT *, "Scalar flux did not match"
-    !PRINT *, scalar_flux
-    !PRINT *, "Original"
-    !PRINT *, flux
   END IF
 
-  !DEALLOCATE ( scalar_flux )
+  DEALLOCATE ( scalar_flux )
 
 !_______________________________________________________________________
 !
