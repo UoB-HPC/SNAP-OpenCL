@@ -335,6 +335,7 @@ SUBROUTINE translv
     WRITE ( *, 214 ) ( ocl_sweep_time )
     WRITE ( *, 215 ) ( ocl_reduc_time )
     WRITE ( *, 216 ) ( ocl_sweep_time*1.0E9_r_knd / tmp )
+    WRITE ( *, 217 ) ( t7-t1 )
 
 !_______________________________________________________________________
 
@@ -361,6 +362,7 @@ SUBROUTINE translv
   214 FORMAT( 'OpenCL sweeps + scalar reduction: ', F10.3, 's')
   215 FORMAT( 'OpenCL flux reduction time: ', F10.3, 's')
   216 FORMAT( 'OpenCL grind time (for resident sweep): ', F10.3, 'ns')
+  217 FORMAT( 'Total time (orig + OpenCL): ', F10.3, 's')
 
 !_______________________________________________________________________
 !_______________________________________________________________________
