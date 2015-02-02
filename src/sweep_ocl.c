@@ -13,11 +13,12 @@
 // Include the kernel strings
 #include "sweep_kernels.h"
 
+#define NUM_QUEUES 4
 
 // Global OpenCL handles (context, queue, etc.)
 cl_device_id device;
 cl_context context;
-cl_command_queue queue;
+cl_command_queue queue[NUM_QUEUES];
 cl_program program;
 
 // OpenCL kernels
@@ -103,9 +104,12 @@ void opencl_setup_(void)
     context = clCreateContext(properties, 1, &device, NULL, NULL, &err);
     check_error(err, "Creating context");
 
-    // Create command queue
-    queue = clCreateCommandQueue(context, device, 0, &err);
-    check_error(err, "Creating command queue");
+    // Create command queues
+    for (int i = 0; i < NUM_QUEUES; i++)
+    {
+        queue[i] = clCreateCommandQueue(context, device, 0, &err);
+        check_error(err, "Creating command queue");
+    }
 
     // Create program
     program = clCreateProgramWithSource(context, 1, &sweep_kernels_ocl, NULL, &err);
@@ -140,8 +144,11 @@ void opencl_teardown_(void)
     err = clReleaseContext(context);
     check_error(err, "Releasing context");
 
-    err = clReleaseCommandQueue(queue);
-    check_error(err, "Releasing queue");
+    for (int i = 0; i < NUM_QUEUES; i++)
+    {
+        err = clReleaseCommandQueue(queue[i]);
+        check_error(err, "Releasing queue");
+    }
 
     err = clReleaseMemObject(d_source);
     check_error(err, "Releasing source buffer");
@@ -203,10 +210,10 @@ void copy_to_device_(
     // Create buffers and copy data to device
     cl_int err;
 
-    d_flux_in = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang*nx*ny*nz*noct*ng, NULL, &err);
+    d_flux_in = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nang*nx*ny*nz*noct*ng, NULL, &err);
     check_error(err, "Creating flux_in buffer");
 
-    d_flux_out = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(double)*nang*nx*ny*nz*noct*ng, NULL, &err);
+    d_flux_out = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nang*nx*ny*nz*noct*ng, NULL, &err);
     check_error(err, "Creating flux_out buffer");
 
     zero_centre_flux_in_buffer_();
@@ -261,7 +268,7 @@ void copy_to_device_(
 void copy_source_to_device_(double *source)
 {
     cl_int err;
-    err = clEnqueueWriteBuffer(queue, d_source, CL_TRUE, 0, sizeof(double)*cmom*nx*ny*nz*ng, source, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(queue[0], d_source, CL_TRUE, 0, sizeof(double)*cmom*nx*ny*nz*ng, source, 0, NULL, NULL);
     check_error(err, "Copying source buffer");
 }
 
@@ -269,7 +276,7 @@ void copy_source_to_device_(double *source)
 void copy_denom_to_device_(double *denom)
 {
     cl_int err;
-    err = clEnqueueWriteBuffer(queue, d_denom, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*ng, denom, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(queue[0], d_denom, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*ng, denom, 0, NULL, NULL);
     check_error(err, "Copying denom buffer");
 
 }
@@ -278,17 +285,17 @@ void copy_dd_coefficients_to_device_(double *dd_i_, double *dd_j, double *dd_k)
 {
     d_dd_i = *dd_i_;
     cl_int err;
-    err = clEnqueueWriteBuffer(queue, d_dd_j, CL_TRUE, 0, sizeof(double)*nang, dd_j, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(queue[0], d_dd_j, CL_TRUE, 0, sizeof(double)*nang, dd_j, 0, NULL, NULL);
     check_error(err, "Copying dd_j buffer");
 
-    err = clEnqueueWriteBuffer(queue, d_dd_k, CL_TRUE, 0, sizeof(double)*nang, dd_k, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(queue[0], d_dd_k, CL_TRUE, 0, sizeof(double)*nang, dd_k, 0, NULL, NULL);
     check_error(err, "Copying dd_k buffer");
 }
 
 void copy_time_delta_to_device_(double *time_delta)
 {
     cl_int err;
-    err = clEnqueueWriteBuffer(queue, d_time_delta, CL_TRUE, 0, sizeof(double)*ng, time_delta, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(queue[0], d_time_delta, CL_TRUE, 0, sizeof(double)*ng, time_delta, 0, NULL, NULL);
     check_error(err, "Copying time_delta buffer");
 }
 
@@ -296,17 +303,17 @@ void zero_edge_flux_buffers_(void)
 {
     cl_int err;
     double *zero = (double *)calloc(sizeof(double),nang*ny*nz*ng);
-    err = clEnqueueWriteBuffer(queue, d_flux_i, CL_TRUE, 0, sizeof(double)*nang*ny*nz*ng, zero, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(queue[0], d_flux_i, CL_TRUE, 0, sizeof(double)*nang*ny*nz*ng, zero, 0, NULL, NULL);
     free(zero);
     check_error(err, "Zeroing flux_i buffer");
 
     zero = (double *)calloc(sizeof(double),nang*nx*nz*ng);
-    err = clEnqueueWriteBuffer(queue, d_flux_j, CL_TRUE, 0, sizeof(double)*nang*nx*nz*ng, zero, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(queue[0], d_flux_j, CL_TRUE, 0, sizeof(double)*nang*nx*nz*ng, zero, 0, NULL, NULL);
     free(zero);
     check_error(err, "Zeroing flux_j buffer");
 
     zero = (double *)calloc(sizeof(double),nang*nx*ny*ng);
-    err = clEnqueueWriteBuffer(queue, d_flux_k, CL_TRUE, 0, sizeof(double)*nang*nx*ny*ng, zero, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(queue[0], d_flux_k, CL_TRUE, 0, sizeof(double)*nang*nx*ny*ng, zero, 0, NULL, NULL);
     free(zero);
     check_error(err, "Zeroing flux_k buffer");
 }
@@ -315,7 +322,7 @@ void zero_centre_flux_in_buffer_(void)
 {
     cl_int err;
     double *zero = (double *)calloc(sizeof(double),nang*nx*ny*nz*noct*ng);
-    err = clEnqueueWriteBuffer(queue, d_flux_in, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, zero, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(queue[0], d_flux_in, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, zero, 0, NULL, NULL);
     free(zero);
     check_error(err, "Copying flux_in to device");
 }
@@ -469,17 +476,27 @@ void enqueue_octant(const unsigned int oct, const unsigned int ndiag, const plan
             check_error(err, "Setting sweep_cell kernel args cell positions");
 
             // Enqueue the kernel
-            err = clEnqueueNDRangeKernel(queue, k_sweep_cell, 2, 0, global, NULL, 0, NULL, NULL);
+            err = clEnqueueNDRangeKernel(queue[l % NUM_QUEUES], k_sweep_cell, 2, 0, global, NULL, 0, NULL, NULL);
             check_error(err, "Enqueue sweep_cell kernel");
         }
+        // Synchronise command queues at the end of the diagonal plance
+        if (NUM_QUEUES > 1)
+        {
+            for (int q = 0; q < NUM_QUEUES; q++)
+            {
+                err = clFinish(queue[q]);
+                check_error(err, "Finish queues in plane");
+            }
+        }
     }
-
 }
 
 // Perform a sweep over the grid for all the octants
 void ocl_sweep_(void)
 {
     cl_int err;
+
+    printf("Using %d queues\n", NUM_QUEUES);
 
     // Number of planes in this octant
     unsigned int ndiag = ichunk + ny + nz - 2;
@@ -495,8 +512,12 @@ void ocl_sweep_(void)
         zero_edge_flux_buffers_();
     }
 
-    err = clFinish(queue);
-    check_error(err, "Finish queue");
+#pragma omp parallel for
+    for (int i = 0; i < NUM_QUEUES; i++)
+    {
+        err = clFinish(queue[i]);
+        check_error(err, "Finish queue");
+    }
 
     double toc = omp_get_wtime();
 
@@ -516,7 +537,7 @@ void ocl_sweep_(void)
 void get_output_flux_(double* flux_out)
 {
     cl_int err;
-    err = clEnqueueReadBuffer(queue, d_flux_out, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, flux_out, 0, NULL, NULL);
+    err = clEnqueueReadBuffer(queue[0], d_flux_out, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, flux_out, 0, NULL, NULL);
     check_error(err, "Reading d_flux_out");
 }
 
@@ -543,10 +564,10 @@ void ocl_scalar_flux_(void)
     err |= clSetKernelArg(k_reduce_angular, 10, sizeof(cl_mem), &d_scalar_flux);
     check_error(err, "Setting reduce_angular kernel arguments");
 
-    err = clEnqueueNDRangeKernel(queue, k_reduce_angular, 3, 0, global, NULL, 0, NULL, NULL);
+    err = clEnqueueNDRangeKernel(queue[0], k_reduce_angular, 3, 0, global, NULL, 0, NULL, NULL);
     check_error(err, "Enqueue reduce_angular kernel");
 
-    err = clFinish(queue);
+    err = clFinish(queue[0]);
     check_error(err, "Finishing queue after reduce_angular kernel");
 
     double toc = omp_get_wtime();
@@ -559,7 +580,7 @@ void ocl_scalar_flux_(void)
 void get_scalar_flux_(double *scalar)
 {
     cl_int err;
-    err = clEnqueueReadBuffer(queue, d_scalar_flux, CL_TRUE, 0, sizeof(double)*nx*ny*nz*ng, scalar, 0, NULL, NULL);
+    err = clEnqueueReadBuffer(queue[0], d_scalar_flux, CL_TRUE, 0, sizeof(double)*nx*ny*nz*ng, scalar, 0, NULL, NULL);
     check_error(err, "Enqueue read scalar_flux buffer");
 }
 
