@@ -266,8 +266,6 @@ SUBROUTINE translv
     END IF
   END DO
 
-  DEALLOCATE ( ocl_angular_flux )
-
 !_______________________________________________________________________
 !
 !   Compute the Scalar Flux from the angular flux using OpenCL
@@ -281,8 +279,6 @@ SUBROUTINE translv
   ELSE
     PRINT *, "Scalar flux did not match"
   END IF
-
-  DEALLOCATE ( scalar_flux )
 
 !_______________________________________________________________________
 !
@@ -320,6 +316,10 @@ SUBROUTINE translv
         * REAL( nang, r_knd ) * REAL( noct, r_knd )                    &
         * REAL( tot_iits, r_knd )
   tgrind = tslv*1.0E9_r_knd / tmp
+
+
+  DEALLOCATE ( ocl_angular_flux )
+  DEALLOCATE ( scalar_flux )
 
 !_______________________________________________________________________
 !
