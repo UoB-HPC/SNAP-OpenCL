@@ -263,6 +263,7 @@ SUBROUTINE translv
       PRINT *, "Octant", o, "matched"
     ELSE
       PRINT *, "Octant", o, "did NOT match"
+      PRINT *, "Biggest error:", MAXVAL ( ABS ( ocl_angular_flux(:,:,:,:,o,:) - ptr_out(:,:,:,:,o,:) ) )
     END IF
   END DO
 
