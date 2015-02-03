@@ -558,15 +558,11 @@ void ocl_sweep_(void)
 {
     cl_int err;
 
-    printf("Using %d queues\n", NUM_QUEUES);
-
     // Number of planes in this octant
     unsigned int ndiag = ichunk + ny + nz - 2;
 
     // Get the order of cells to enqueue
     plane *planes = compute_sweep_order();
-
-    double tic = omp_get_wtime();
 
     for (int o = 0; o < noct; o++)
     {
@@ -574,18 +570,11 @@ void ocl_sweep_(void)
         zero_edge_flux_buffers_();
     }
 
-#pragma omp parallel for
     for (int i = 0; i < NUM_QUEUES; i++)
     {
         err = clFinish(queue[i]);
         check_error(err, "Finish queue");
     }
-
-    double toc = omp_get_wtime();
-
-    printf("Sweep took %lfs\n", toc-tic);
-
-    printf("Grind time: %lfns\n", 1000000000.0*(toc-tic)/(noct*nx*ny*nz*nang*ng));
 
     // Free planes
     for (unsigned int i = 0; i < ndiag; i++)
@@ -599,7 +588,10 @@ void ocl_sweep_(void)
 void get_output_flux_(double* flux_out)
 {
     cl_int err;
-    err = clEnqueueReadBuffer(queue[0], d_flux_out, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, flux_out, 0, NULL, NULL);
+    if (global_timestep % 2 == 0)
+        err = clEnqueueReadBuffer(queue[0], d_flux_out, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, flux_out, 0, NULL, NULL);
+    else
+        err = clEnqueueReadBuffer(queue[0], d_flux_in, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, flux_out, 0, NULL, NULL);
     check_error(err, "Reading d_flux_out");
 }
 
@@ -609,8 +601,6 @@ void ocl_scalar_flux_(void)
     cl_int err;
 
     const size_t global[3] = {nx, ny, nz};
-
-    double tic = omp_get_wtime();
 
     err = clSetKernelArg(k_reduce_angular, 0, sizeof(unsigned int), &nx);
     err |= clSetKernelArg(k_reduce_angular, 1, sizeof(unsigned int), &ny);
@@ -631,10 +621,6 @@ void ocl_scalar_flux_(void)
 
     err = clFinish(queue[0]);
     check_error(err, "Finishing queue after reduce_angular kernel");
-
-    double toc = omp_get_wtime();
-
-    printf("Reduction took: %lfs\n", toc-tic);
 
 }
 

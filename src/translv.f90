@@ -260,14 +260,13 @@ SUBROUTINE translv
   CALL get_output_flux ( ocl_angular_flux )
 
   DO o = 1, noct
-    IF ( ALL ( ABS ( ocl_angular_flux(:,:,:,:,o,:) - ptr_out(:,:,:,:,o,:) ) < 1.0E-14_r_knd ) ) THEN
+    IF ( ALL ( ABS ( ocl_angular_flux(:,:,:,:,o,:) - ptr_out(:,:,:,:,o,:) ) < 1.0E-13_r_knd ) ) THEN
       PRINT *, "Octant", o, "matched"
     ELSE
       PRINT *, "Octant", o, "did NOT match"
+      PRINT *, "Biggest error:", MAXVAL ( ABS ( ocl_angular_flux(:,:,:,:,o,:) - ptr_out(:,:,:,:,o,:) ) )
     END IF
   END DO
-
-  DEALLOCATE ( ocl_angular_flux )
 
 !_______________________________________________________________________
 !
@@ -277,13 +276,11 @@ SUBROUTINE translv
   CALL ocl_scalar_flux
   CALL get_scalar_flux( scalar_flux )
 
-  IF ( ALL ( ABS ( scalar_flux - flux ) < 1.0E-14_r_knd ) ) THEN
+  IF ( ALL ( ABS ( scalar_flux - flux ) < 1.0E-13_r_knd ) ) THEN
     PRINT *, "Scalar flux matched"
   ELSE
     PRINT *, "Scalar flux did not match"
   END IF
-
-  DEALLOCATE ( scalar_flux )
 
 !_______________________________________________________________________
 !
@@ -321,6 +318,10 @@ SUBROUTINE translv
         * REAL( nang, r_knd ) * REAL( noct, r_knd )                    &
         * REAL( tot_iits, r_knd )
   tgrind = tslv*1.0E9_r_knd / tmp
+
+
+  DEALLOCATE ( ocl_angular_flux )
+  DEALLOCATE ( scalar_flux )
 
 !_______________________________________________________________________
 !
