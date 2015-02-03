@@ -259,7 +259,7 @@ SUBROUTINE translv
   CALL get_output_flux ( ocl_angular_flux )
 
   DO o = 1, noct
-    IF ( ALL ( ABS ( ocl_angular_flux(:,:,:,:,o,:) - ptr_out(:,:,:,:,o,:) ) < 1.0E-14_r_knd ) ) THEN
+    IF ( ALL ( ABS ( ocl_angular_flux(:,:,:,:,o,:) - ptr_out(:,:,:,:,o,:) ) < 1.0E-13_r_knd ) ) THEN
       PRINT *, "Octant", o, "matched"
     ELSE
       PRINT *, "Octant", o, "did NOT match"
@@ -274,7 +274,7 @@ SUBROUTINE translv
   CALL ocl_scalar_flux
   CALL get_scalar_flux( scalar_flux )
 
-  IF ( ALL ( ABS ( scalar_flux - flux ) < 1.0E-14_r_knd ) ) THEN
+  IF ( ALL ( ABS ( scalar_flux - flux ) < 1.0E-13_r_knd ) ) THEN
     PRINT *, "Scalar flux matched"
   ELSE
     PRINT *, "Scalar flux did not match"
