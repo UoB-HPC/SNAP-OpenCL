@@ -122,54 +122,16 @@ void opencl_setup_(void)
     int device_index = 0;
 
     // Check for the OpenCL config file stored in SNAP_OCL env variable
-    char *file_path = getenv("SNAP_OCL");
-    if (file_path != NULL)
+    char *device_string = getenv("SNAP_OCL_DEVICE");
+    if (device_string != NULL)
     {
-        FILE *file = fopen(file_path, "r");
-        if (file == NULL)
+        device_index = strtol(device_string, NULL, 10);
+        if (device_index ==  -1)
         {
-            fprintf(stderr, "Error: could not open OpenCL config file\n");
-            perror(file_path);
-            exit(-1);
+            // List devices and then quit
+            list_devices();
+            exit(1);
         }
-
-#define LINE_MAX 1024
-        char line[LINE_MAX];
-        while (fgets(line, LINE_MAX, file) != NULL)
-        {
-            printf("%s\n", line);
-            char *arg = strtok(line, "=");
-            if (arg == NULL)
-            {
-                fprintf(stderr, "Error: could not pass OpenCL config file\n");
-                exit(-1);
-            }
-            char *val = strtok(NULL, "=");
-            if (arg == NULL)
-            {
-                fprintf(stderr, "Error: could not pass OpenCL config file\n");
-                exit(-1);
-            }
-            printf("%s %s\n", arg, val);
-
-            if (strcmp(arg, "list") && strcmp(val, "1"))
-            {
-                // List the OpenCL devices and then quit
-                list_devices();
-                exit(1);
-            }
-            else if (strcmp(arg, "device"))
-            {
-                device_index = strtol(val, NULL, 10);
-            }
-            else
-            {
-                fprintf(stderr, "Error: unknown OpenCL argument %s\n", arg);
-                exit(-1);
-            }
-        }
-
-        fclose(file);
     }
 
     // Get the first or chosen device
