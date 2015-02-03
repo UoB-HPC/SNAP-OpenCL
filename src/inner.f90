@@ -25,7 +25,7 @@ MODULE inner_module
 
   USE sweep_module, ONLY: sweep
 
-  USE time_module, ONLY: tinrsrc, tsweeps, wtime
+  USE time_module, ONLY: tinrsrc, tsweeps, wtime, ocl_copy_time
 
   USE plib_module, ONLY: glmax, comm_snap, iproc, root
 
@@ -53,6 +53,8 @@ MODULE inner_module
     INTEGER(i_knd), DIMENSION(ng), INTENT(OUT) :: iits
 
     REAL(r_knd) :: t1, t2, t3, t4
+
+    REAL(r_knd) :: tic, toc
 !_______________________________________________________________________
 !
 !   Local variables
@@ -90,8 +92,10 @@ MODULE inner_module
 !   Copy the updated source array to the OpenCL device
 !_______________________________________________________________________
 
+    CALL wtime ( tic )
     CALL copy_source_to_device ( qtot )
-
+    CALL wtime ( toc )
+    ocl_copy_time = ocl_copy_time + toc - tic
 !_______________________________________________________________________
 !
 !   Call for the transport sweep. Check convergence, using threads.

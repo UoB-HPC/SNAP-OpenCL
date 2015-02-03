@@ -15,7 +15,7 @@ SUBROUTINE translv
   USE geom_module, ONLY: geom_alloc, geom_dealloc, dinv, param_calc,   &
     nx, ny_gl, nz_gl, diag_setup, hi, hj, hk
 
-  USE sn_module, ONLY: nang, noct, mu, eta, xi, cmom, ec
+  USE sn_module, ONLY: nang, noct, mu, eta, xi, cmom, ec, w
 
   USE data_module, ONLY: ng, v, vdelt, mat, sigt, siga, slgg, src_opt, &
     qim
@@ -32,7 +32,8 @@ SUBROUTINE translv
 
   USE outer_module, ONLY: outer
 
-  USE time_module, ONLY: tslv, wtime, tgrind, tparam
+  USE time_module, ONLY: tslv, wtime, tgrind, tparam,                  &
+    ocl_copy_time, ocl_sweep_time, ocl_reduc_time
 
   IMPLICIT NONE
 !_______________________________________________________________________
@@ -44,11 +45,22 @@ SUBROUTINE translv
 
   CHARACTER(LEN=64) :: error
 
-  INTEGER(i_knd) :: cy, otno, ierr, g, i, tot_iits, cy_iits, out_iits
+  INTEGER(i_knd) :: cy, otno, ierr, g, i, tot_iits, cy_iits, out_iits, o
 
   REAL(r_knd) :: sf, time, t1, t2, t3, t4, t5, t6, t7, tmp
 
   REAL(r_knd), DIMENSION(:,:,:,:,:,:), POINTER :: ptr_tmp
+!_______________________________________________________________________
+!
+!   Local memory for the OpenCL sweep result
+!_______________________________________________________________________
+
+    REAL(r_knd) :: ocl_first_copy_tic, ocl_first_copy_toc
+    REAL(r_knd) :: ocl_update_tic, ocl_update_toc
+    REAL(r_knd), DIMENSION(:,:,:,:,:,:), POINTER :: ocl_angular_flux
+    REAL(r_knd), DIMENSION(:,:,:,:), POINTER :: scalar_flux
+    ALLOCATE( ocl_angular_flux(nang,nx,ny_gl,nz_gl,noct,ng) )
+    ALLOCATE( scalar_flux(nx,ny_gl,nz_gl,ng) )
 !_______________________________________________________________________
 !
 ! Call for data allocations. Some allocations depend on the problem
@@ -103,17 +115,17 @@ SUBROUTINE translv
 
 !_______________________________________________________________________
 !
-! Call for setup of OpenCL context
-!_______________________________________________________________________
-
-  CALL opencl_setup
-
-!_______________________________________________________________________
-!
 !   Copy the problem sizes and constant arrays to OpenCL device
 !_______________________________________________________________________
 
-  CALL copy_to_device ( nx, ny_gl, nz_gl, ng, nang, noct, cmom, ichunk, mu, ec, t_xs, ptr_in )
+  CALL wtime ( ocl_first_copy_tic )
+
+  CALL copy_to_device ( nx, ny_gl, nz_gl, ng, nang, noct, cmom, ichunk, mu, ec, t_xs, w, ptr_in )
+
+  CALL wtime ( ocl_first_copy_toc )
+
+  WRITE ( *, 212 ) ( ocl_first_copy_toc-ocl_first_copy_tic )
+
 
 !_______________________________________________________________________
 !
@@ -128,6 +140,9 @@ SUBROUTINE translv
   tot_iits = 0
 
   time_loop: DO cy = 1, nsteps
+
+    ! Set the timestep for the OpenCL calls
+    CALL ocl_set_timestep ( cy )
 
     CALL wtime ( t3 )
 
@@ -212,9 +227,12 @@ SUBROUTINE translv
 !     Copy the dinv array just calculated to the device
 !_______________________________________________________________________
 
+      CALL wtime ( ocl_update_tic )
       CALL copy_denom_to_device ( dinv )
       CALL copy_dd_coefficients_to_device ( hi, hj, hk )
       CALL copy_time_delta_to_device ( vdelt )
+      CALL wtime ( ocl_update_toc )
+      ocl_copy_time = ocl_copy_time + ocl_update_toc - ocl_update_tic
 
 !_______________________________________________________________________
 !
@@ -236,10 +254,37 @@ SUBROUTINE translv
 
 !_______________________________________________________________________
 !
-! Release OpenCL context
+!   Check that the OpenCL sweep of the octant matches the original
 !_______________________________________________________________________
 
-  CALL opencl_teardown
+  CALL get_output_flux ( ocl_angular_flux )
+
+  DO o = 1, noct
+    IF ( ALL ( ABS ( ocl_angular_flux(:,:,:,:,o,:) - ptr_out(:,:,:,:,o,:) ) < 1.0E-14_r_knd ) ) THEN
+      PRINT *, "Octant", o, "matched"
+    ELSE
+      PRINT *, "Octant", o, "did NOT match"
+    END IF
+  END DO
+
+  DEALLOCATE ( ocl_angular_flux )
+
+!_______________________________________________________________________
+!
+!   Compute the Scalar Flux from the angular flux using OpenCL
+!_______________________________________________________________________
+
+  CALL ocl_scalar_flux
+  CALL get_scalar_flux( scalar_flux )
+
+  IF ( ALL ( ABS ( scalar_flux - flux ) < 1.0E-14_r_knd ) ) THEN
+    PRINT *, "Scalar flux matched"
+  ELSE
+    PRINT *, "Scalar flux did not match"
+  END IF
+
+  DEALLOCATE ( scalar_flux )
+
 !_______________________________________________________________________
 !
 !   Print the time cycle details. Add time cycle iterations.
@@ -276,6 +321,18 @@ SUBROUTINE translv
         * REAL( nang, r_knd ) * REAL( noct, r_knd )                    &
         * REAL( tot_iits, r_knd )
   tgrind = tslv*1.0E9_r_knd / tmp
+
+!_______________________________________________________________________
+!
+!   Print OpenCL timing information
+!_______________________________________________________________________
+
+    WRITE ( *, 213 ) ( ocl_copy_time )
+    WRITE ( *, 214 ) ( ocl_sweep_time )
+    WRITE ( *, 215 ) ( ocl_reduc_time )
+    WRITE ( *, 216 ) ( ocl_sweep_time*1.0E9_r_knd / tmp )
+    WRITE ( *, 217 ) ( t7-t1 )
+
 !_______________________________________________________________________
 
   201 FORMAT( 10X, 'Iteration Monitor', /, 80A )
@@ -294,6 +351,15 @@ SUBROUTINE translv
   210 FORMAT( /, 1X, 30A, /, 2X, 'Total inners for all time steps, '   &
               'outers = ', I6 )
   211 FORMAT( /, 80A, / )
+
+!_______________________________________________________________________
+  212 FORMAT( 'OpenCL buffer init time: ', F10.3, 's' )
+  213 FORMAT( 'Time spent copying updated source: ', F10.3, 's')
+  214 FORMAT( 'OpenCL sweeps + scalar reduction: ', F10.3, 's')
+  215 FORMAT( 'OpenCL flux reduction time: ', F10.3, 's')
+  216 FORMAT( 'OpenCL grind time (for resident sweep): ', F10.3, 'ns')
+  217 FORMAT( 'Total time (orig + OpenCL): ', F10.3, 's')
+
 !_______________________________________________________________________
 !_______________________________________________________________________
 
