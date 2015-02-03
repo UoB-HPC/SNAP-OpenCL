@@ -592,7 +592,10 @@ void ocl_sweep_(void)
 void get_output_flux_(double* flux_out)
 {
     cl_int err;
-    err = clEnqueueReadBuffer(queue[0], d_flux_out, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, flux_out, 0, NULL, NULL);
+    if (global_timestep % 2 == 0)
+        err = clEnqueueReadBuffer(queue[0], d_flux_out, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, flux_out, 0, NULL, NULL);
+    else
+        err = clEnqueueReadBuffer(queue[0], d_flux_in, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, flux_out, 0, NULL, NULL);
     check_error(err, "Reading d_flux_out");
 }
 
