@@ -587,12 +587,21 @@ void ocl_sweep_(void)
 // Copy the flux_out buffer back to the host
 void get_output_flux_(double* flux_out)
 {
+    double *tmp = calloc(sizeof(double),nang*ng*nx*ny*nz*noct);
     cl_int err;
     if (global_timestep % 2 == 0)
-        err = clEnqueueReadBuffer(queue[0], d_flux_out, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, flux_out, 0, NULL, NULL);
+        err = clEnqueueReadBuffer(queue[0], d_flux_out, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, tmp, 0, NULL, NULL);
     else
-        err = clEnqueueReadBuffer(queue[0], d_flux_in, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, flux_out, 0, NULL, NULL);
+        err = clEnqueueReadBuffer(queue[0], d_flux_in, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, tmp, 0, NULL, NULL);
     check_error(err, "Reading d_flux_out");
+    for (int a = 0; a < nang; a++)
+        for (int g = 0; g < ng; g++)
+            for (int i = 0; i < nx; i++)
+                for (int j = 0; j < ny; j++)
+                    for (int k = 0; k < nz; k++)
+                        for (int o = 0; o < noct; o++)
+                            flux_out[a+(nang*i)+(nang*nx*j)+(nang*nx*ny*k)+(nang*nx*ny*nz*o)+(nang*nx*ny*nz*noct*g)] = tmp[a+(nang*g)+(nang*ng*i)+(nang*ng*nx*j)+(nang*ng*nx*ny*k)+(nang*ng*nx*ny*nz*o)];
+    free(tmp);
 }
 
 // Enqueue the kernel to reduce the angular flux to the scalar flux
