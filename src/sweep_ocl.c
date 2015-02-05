@@ -14,7 +14,15 @@
 // Include the kernel strings
 #include "sweep_kernels.h"
 
+#ifdef __APPLE__
+// The OS X OpenCL crashes on clWaitForEvents if
+// the events are over more than one command queue
+// is used for the CPU. It seems to work with 4 queues
+// if you use the dedicated NVIDIA GPU instead
+#define NUM_QUEUES 1
+#else
 #define NUM_QUEUES 4
+#endif
 
 // Global OpenCL handles (context, queue, etc.)
 cl_device_id device;
@@ -562,6 +570,10 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
     err |= clSetKernelArg(k_sweep_cell, 25, sizeof(cl_mem), &d_denom);
     check_error(err, "Set sweep_cell kernel args");
 
+    // Create array for OpenCL events - one for each cell
+    cl_event *events = calloc(sizeof(cl_event),nx*ny*nz);
+    unsigned int last_event = 0;
+
     // Loop over the diagonal wavefronts
     for (unsigned int d = 0; d < ndiag; d++)
     {
@@ -586,19 +598,22 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
             check_error(err, "Setting sweep_cell kernel args cell positions");
 
             // Enqueue the kernel
-            err = clEnqueueNDRangeKernel(queue[l % NUM_QUEUES], k_sweep_cell, 2, 0, global, NULL, 0, NULL, NULL);
+            if (last_event == 0)
+                err = clEnqueueNDRangeKernel(queue[l % NUM_QUEUES], k_sweep_cell, 2, 0, global, NULL, 0, NULL, &events[0]);
+            else
+            {
+                err = clEnqueueNDRangeKernel(queue[l % NUM_QUEUES], k_sweep_cell, 2, 0, global, NULL, last_event, events, &events[last_event+l]);
+            }
             check_error(err, "Enqueue sweep_cell kernel");
         }
-        // Synchronise command queues at the end of the diagonal plance
-        if (NUM_QUEUES > 1)
-        {
-            for (int q = 0; q < NUM_QUEUES; q++)
-            {
-                err = clFinish(queue[q]);
-                check_error(err, "Finish queues in plane");
-            }
-        }
+        last_event += planes[d].num_cells;
     }
+    // Must wait until everything is done before we can free the event list
+    // and move to the next octant
+    clWaitForEvents(last_event, events);
+    for (int e = 0; e < nx*ny*nz; e++)
+        clReleaseEvent(events[e]);
+    free(events);
 }
 
 // Perform a sweep over the grid for all the octants
