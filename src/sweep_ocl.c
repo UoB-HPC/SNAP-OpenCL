@@ -183,11 +183,53 @@ void opencl_teardown_(void)
     printf("Releasing OpenCL...");
 
     cl_int err;
-    err = clReleaseDevice(device);
-    check_error(err, "Releasing device");
 
-    err = clReleaseContext(context);
-    check_error(err, "Releasing context");
+    // Release all the buffers
+    err = clReleaseMemObject(d_source);
+    check_error(err, "Releasing d_source buffer");
+
+    err = clReleaseMemObject(d_flux_in);
+    check_error(err, "Releasing d_flux_in buffer");
+
+    err = clReleaseMemObject(d_flux_out);
+    check_error(err, "Releasing d_flux_out buffer");
+
+    err = clReleaseMemObject(d_flux_i);
+    check_error(err, "Releasing d_flux_i buffer");
+
+    err = clReleaseMemObject(d_flux_j);
+    check_error(err, "Releasing d_flux_j buffer");
+
+    err = clReleaseMemObject(d_flux_k);
+    check_error(err, "Releasing d_flux_k buffer");
+
+    err = clReleaseMemObject(d_denom);
+    check_error(err, "Releasing d_denom buffer");
+
+    err = clReleaseMemObject(d_dd_j);
+    check_error(err, "Releasing d_dd_j buffer");
+
+    err = clReleaseMemObject(d_dd_k);
+    check_error(err, "Releasing d_dd_k buffer");
+
+    err = clReleaseMemObject(d_mu);
+    check_error(err, "Releasing d_mu buffer");
+
+    err = clReleaseMemObject(d_scat_coeff);
+    check_error(err, "Releasing d_scat_coeff buffer");
+
+    err = clReleaseMemObject(d_time_delta);
+    check_error(err, "Releasing d_time_delta buffer");
+
+    err = clReleaseMemObject(d_total_cross_section);
+    check_error(err, "Releasing d_total_cross_section buffer");
+
+    err = clReleaseMemObject(d_weights);
+    check_error(err, "Releasing d_weights buffer");
+
+    err = clReleaseMemObject(d_scalar_flux);
+    check_error(err, "Releasing d_scalar_flux buffer");
+
 
     for (int i = 0; i < NUM_QUEUES; i++)
     {
@@ -195,17 +237,23 @@ void opencl_teardown_(void)
         check_error(err, "Releasing queue");
     }
 
-    err = clReleaseMemObject(d_source);
-    check_error(err, "Releasing source buffer");
+    // Release kernels
+    err = clReleaseKernel(k_sweep_cell);
+    check_error(err, "Releasing k_sweep_cell kernel");
 
-    err = clReleaseMemObject(d_flux_in);
-    check_error(err, "Releasing flux_in buffer");
+    err = clReleaseKernel(k_reduce_angular);
+    check_error(err, "Releasing k_reduce_angular kernel");
 
-    err = clReleaseMemObject(d_flux_out);
-    check_error(err, "Releasing flux_out buffer");
+    // Release program
+    err = clReleaseProgram(program);
+    check_error(err, "Releasing program");
 
-    err = clReleaseMemObject(d_denom);
-    check_error(err, "Releasing d_denom buffer");
+    err = clReleaseDevice(device);
+    check_error(err, "Releasing device");
+
+    // Release context
+    err = clReleaseContext(context);
+    check_error(err, "Releasing context");
 
     printf("done\n");
 }
