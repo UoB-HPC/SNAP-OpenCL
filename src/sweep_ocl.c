@@ -14,15 +14,7 @@
 // Include the kernel strings
 #include "sweep_kernels.h"
 
-#ifdef __APPLE__
-// The OS X OpenCL crashes on clWaitForEvents if
-// the events are over more than one command queue
-// is used for the CPU. It seems to work with 4 queues
-// if you use the dedicated NVIDIA GPU instead
-#define NUM_QUEUES 1
-#else
 #define NUM_QUEUES 4
-#endif
 
 // Global OpenCL handles (context, queue, etc.)
 cl_device_id device;
