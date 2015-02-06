@@ -70,7 +70,7 @@ void check_build_error(cl_int err, char *msg)
     if (err == CL_BUILD_PROGRAM_FAILURE)
     {
         char *build_log = (char*)malloc(sizeof(char)*4096);
-        clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, sizeof(char)*4096, build_log, NULL);
+        err = clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, sizeof(char)*4096, build_log, NULL);
         fprintf(stderr, "Error: %d\n", err);
         fprintf(stderr, "Build log:\n%s\n", build_log);
         free(build_log);
@@ -146,7 +146,7 @@ void opencl_setup_(void)
     // Get the first or chosen device
     cl_device_id devices[MAX_DEVICES];
     unsigned int num_devices = get_devices(devices);
-    cl_device_id device = devices[device_index];
+    device = devices[device_index];
 
     // Print device name
     char name[MAX_INFO_STRING];
