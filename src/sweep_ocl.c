@@ -622,9 +622,7 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
         }
         last_event += planes[d].num_cells;
     }
-    // Must wait until everything is done before we can free the event list
-    // and move to the next octant
-    clWaitForEvents(last_event, events);
+    // Decrement the reference counters so the API can bin these events
     for (int e = 0; e < nx*ny*nz; e++)
         clReleaseEvent(events[e]);
 
