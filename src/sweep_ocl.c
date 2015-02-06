@@ -61,6 +61,11 @@ unsigned int global_timestep;
 // This list stores those events, and is reset every octant.
 cl_event *events;
 
+// Create an empty buffer to zero out the edge flux arrays
+// Each direction can share it as we make sure that it is
+// big enough for each of them
+double *zero_edge;
+
 // Check OpenCL errors and exit if no success
 void check_error(cl_int err, char *msg)
 {
@@ -200,6 +205,9 @@ void opencl_teardown_(void)
     // Release the event array
     free(events);
 
+    // Release the zero edge array
+    free(zero_edge);
+
     cl_int err;
 
     // Release all the buffers
@@ -323,6 +331,18 @@ void copy_to_device_(
     // Create array for OpenCL events - one for each cell
     events = calloc(sizeof(cl_event),nx*ny*nz);
 
+    // Create zero array for the edge flux buffers
+    // First we need maximum two of nx, ny and nz
+    size_t s = nang * ng;
+    if (nx < ny && nx < nz)
+        s *= ny * nz;
+    else if (ny < nx && ny < nz)
+        s *= nx * nz;
+    else
+        s *= nx * ny;
+    zero_edge = (double *)calloc(sizeof(double), s);
+
+
     // Create buffers and copy data to device
     cl_int err;
 
@@ -421,19 +441,13 @@ void copy_time_delta_to_device_(double *time_delta)
 void zero_edge_flux_buffers_(void)
 {
     cl_int err;
-    double *zero = (double *)calloc(sizeof(double),nang*ny*nz*ng);
-    err = clEnqueueWriteBuffer(queue[0], d_flux_i, CL_TRUE, 0, sizeof(double)*nang*ny*nz*ng, zero, 0, NULL, NULL);
-    free(zero);
+    err = clEnqueueWriteBuffer(queue[0], d_flux_i, CL_FALSE, 0, sizeof(double)*nang*ny*nz*ng, zero_edge, 0, NULL, NULL);
     check_error(err, "Zeroing flux_i buffer");
 
-    zero = (double *)calloc(sizeof(double),nang*nx*nz*ng);
-    err = clEnqueueWriteBuffer(queue[0], d_flux_j, CL_TRUE, 0, sizeof(double)*nang*nx*nz*ng, zero, 0, NULL, NULL);
-    free(zero);
+    err = clEnqueueWriteBuffer(queue[0], d_flux_j, CL_FALSE, 0, sizeof(double)*nang*nx*nz*ng, zero_edge, 0, NULL, NULL);
     check_error(err, "Zeroing flux_j buffer");
 
-    zero = (double *)calloc(sizeof(double),nang*nx*ny*ng);
-    err = clEnqueueWriteBuffer(queue[0], d_flux_k, CL_TRUE, 0, sizeof(double)*nang*nx*ny*ng, zero, 0, NULL, NULL);
-    free(zero);
+    err = clEnqueueWriteBuffer(queue[0], d_flux_k, CL_FALSE, 0, sizeof(double)*nang*nx*ny*ng, zero_edge, 0, NULL, NULL);
     check_error(err, "Zeroing flux_k buffer");
 }
 
