@@ -659,11 +659,10 @@ void ocl_sweep_(void)
         zero_edge_flux_buffers_();
     }
 
-    for (int i = 0; i < NUM_QUEUES; i++)
-    {
-        err = clFinish(queue[i]);
-        check_error(err, "Finish queue");
-    }
+    // The last cell, and the copy zero array are on queue zero,
+    // so we only have to wait for this one
+    err = clFinish(queue[0]);
+    check_error(err, "Finish queue 0");
 
     // Free planes
     for (unsigned int i = 0; i < ndiag; i++)
