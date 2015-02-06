@@ -54,6 +54,13 @@ cl_mem d_scalar_flux;
 // Global variable for the timestep
 unsigned int global_timestep;
 
+// List of OpenCL events, one for each cell
+// This is used to encourage spacial parallelism by
+// enqueuing kernels in multiple queues which only
+// depend on all their downwind neighbours.
+// This list stores those events, and is reset every octant.
+cl_event *events;
+
 // Check OpenCL errors and exit if no success
 void check_error(cl_int err, char *msg)
 {
@@ -190,6 +197,9 @@ void opencl_teardown_(void)
 {
     printf("Releasing OpenCL...");
 
+    // Release the event array
+    free(events);
+
     cl_int err;
 
     // Release all the buffers
@@ -309,6 +319,9 @@ void copy_to_device_(
     noct = *noct_;
     cmom = *cmom_;
     ichunk = *ichunk_;
+
+    // Create array for OpenCL events - one for each cell
+    events = calloc(sizeof(cl_event),nx*ny*nz);
 
     // Create buffers and copy data to device
     cl_int err;
@@ -570,8 +583,9 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
     err |= clSetKernelArg(k_sweep_cell, 25, sizeof(cl_mem), &d_denom);
     check_error(err, "Set sweep_cell kernel args");
 
-    // Create array for OpenCL events - one for each cell
-    cl_event *events = calloc(sizeof(cl_event),nx*ny*nz);
+    // Store the number of cells up to the end of the previous plane
+    // Used to give the length of the wait list for the current plane
+    // cell enqueues
     unsigned int last_event = 0;
 
     // Loop over the diagonal wavefronts
@@ -613,7 +627,7 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
     clWaitForEvents(last_event, events);
     for (int e = 0; e < nx*ny*nz; e++)
         clReleaseEvent(events[e]);
-    free(events);
+
 }
 
 // Perform a sweep over the grid for all the octants
