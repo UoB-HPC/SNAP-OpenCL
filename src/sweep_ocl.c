@@ -14,7 +14,15 @@
 // Include the kernel strings
 #include "sweep_kernels.h"
 
+#ifdef __APPLE__
+// The OS X OpenCL crashes on clWaitForEvents if
+// the events are over more than one command queue
+// is used for the CPU. It seems to work with 4 queues
+// if you use the dedicated NVIDIA GPU instead
+#define NUM_QUEUES 1
+#else
 #define NUM_QUEUES 4
+#endif
 
 // Global OpenCL handles (context, queue, etc.)
 cl_device_id device;
@@ -46,6 +54,18 @@ cl_mem d_scalar_flux;
 // Global variable for the timestep
 unsigned int global_timestep;
 
+// List of OpenCL events, one for each cell
+// This is used to encourage spacial parallelism by
+// enqueuing kernels in multiple queues which only
+// depend on all their downwind neighbours.
+// This list stores those events, and is reset every octant.
+cl_event *events;
+
+// Create an empty buffer to zero out the edge flux arrays
+// Each direction can share it as we make sure that it is
+// big enough for each of them
+double *zero_edge;
+
 // Check OpenCL errors and exit if no success
 void check_error(cl_int err, char *msg)
 {
@@ -62,7 +82,7 @@ void check_build_error(cl_int err, char *msg)
     if (err == CL_BUILD_PROGRAM_FAILURE)
     {
         char *build_log = (char*)malloc(sizeof(char)*4096);
-        clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, sizeof(char)*4096, build_log, NULL);
+        err = clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, sizeof(char)*4096, build_log, NULL);
         fprintf(stderr, "Error: %d\n", err);
         fprintf(stderr, "Build log:\n%s\n", build_log);
         free(build_log);
@@ -138,7 +158,7 @@ void opencl_setup_(void)
     // Get the first or chosen device
     cl_device_id devices[MAX_DEVICES];
     unsigned int num_devices = get_devices(devices);
-    cl_device_id device = devices[device_index];
+    device = devices[device_index];
 
     // Print device name
     char name[MAX_INFO_STRING];
@@ -182,12 +202,60 @@ void opencl_teardown_(void)
 {
     printf("Releasing OpenCL...");
 
-    cl_int err;
-    err = clReleaseDevice(device);
-    check_error(err, "Releasing device");
+    // Release the event array
+    free(events);
 
-    err = clReleaseContext(context);
-    check_error(err, "Releasing context");
+    // Release the zero edge array
+    free(zero_edge);
+
+    cl_int err;
+
+    // Release all the buffers
+    err = clReleaseMemObject(d_source);
+    check_error(err, "Releasing d_source buffer");
+
+    err = clReleaseMemObject(d_flux_in);
+    check_error(err, "Releasing d_flux_in buffer");
+
+    err = clReleaseMemObject(d_flux_out);
+    check_error(err, "Releasing d_flux_out buffer");
+
+    err = clReleaseMemObject(d_flux_i);
+    check_error(err, "Releasing d_flux_i buffer");
+
+    err = clReleaseMemObject(d_flux_j);
+    check_error(err, "Releasing d_flux_j buffer");
+
+    err = clReleaseMemObject(d_flux_k);
+    check_error(err, "Releasing d_flux_k buffer");
+
+    err = clReleaseMemObject(d_denom);
+    check_error(err, "Releasing d_denom buffer");
+
+    err = clReleaseMemObject(d_dd_j);
+    check_error(err, "Releasing d_dd_j buffer");
+
+    err = clReleaseMemObject(d_dd_k);
+    check_error(err, "Releasing d_dd_k buffer");
+
+    err = clReleaseMemObject(d_mu);
+    check_error(err, "Releasing d_mu buffer");
+
+    err = clReleaseMemObject(d_scat_coeff);
+    check_error(err, "Releasing d_scat_coeff buffer");
+
+    err = clReleaseMemObject(d_time_delta);
+    check_error(err, "Releasing d_time_delta buffer");
+
+    err = clReleaseMemObject(d_total_cross_section);
+    check_error(err, "Releasing d_total_cross_section buffer");
+
+    err = clReleaseMemObject(d_weights);
+    check_error(err, "Releasing d_weights buffer");
+
+    err = clReleaseMemObject(d_scalar_flux);
+    check_error(err, "Releasing d_scalar_flux buffer");
+
 
     for (int i = 0; i < NUM_QUEUES; i++)
     {
@@ -195,17 +263,23 @@ void opencl_teardown_(void)
         check_error(err, "Releasing queue");
     }
 
-    err = clReleaseMemObject(d_source);
-    check_error(err, "Releasing source buffer");
+    // Release kernels
+    err = clReleaseKernel(k_sweep_cell);
+    check_error(err, "Releasing k_sweep_cell kernel");
 
-    err = clReleaseMemObject(d_flux_in);
-    check_error(err, "Releasing flux_in buffer");
+    err = clReleaseKernel(k_reduce_angular);
+    check_error(err, "Releasing k_reduce_angular kernel");
 
-    err = clReleaseMemObject(d_flux_out);
-    check_error(err, "Releasing flux_out buffer");
+    // Release program
+    err = clReleaseProgram(program);
+    check_error(err, "Releasing program");
 
-    err = clReleaseMemObject(d_denom);
-    check_error(err, "Releasing d_denom buffer");
+    err = clReleaseDevice(device);
+    check_error(err, "Releasing device");
+
+    // Release context
+    err = clReleaseContext(context);
+    check_error(err, "Releasing context");
 
     printf("done\n");
 }
@@ -253,6 +327,21 @@ void copy_to_device_(
     noct = *noct_;
     cmom = *cmom_;
     ichunk = *ichunk_;
+
+    // Create array for OpenCL events - one for each cell
+    events = calloc(sizeof(cl_event),nx*ny*nz);
+
+    // Create zero array for the edge flux buffers
+    // First we need maximum two of nx, ny and nz
+    size_t s = nang * ng;
+    if (nx < ny && nx < nz)
+        s *= ny * nz;
+    else if (ny < nx && ny < nz)
+        s *= nx * nz;
+    else
+        s *= nx * ny;
+    zero_edge = (double *)calloc(sizeof(double), s);
+
 
     // Create buffers and copy data to device
     cl_int err;
@@ -352,19 +441,13 @@ void copy_time_delta_to_device_(double *time_delta)
 void zero_edge_flux_buffers_(void)
 {
     cl_int err;
-    double *zero = (double *)calloc(sizeof(double),nang*ny*nz*ng);
-    err = clEnqueueWriteBuffer(queue[0], d_flux_i, CL_TRUE, 0, sizeof(double)*nang*ny*nz*ng, zero, 0, NULL, NULL);
-    free(zero);
+    err = clEnqueueWriteBuffer(queue[0], d_flux_i, CL_FALSE, 0, sizeof(double)*nang*ny*nz*ng, zero_edge, 0, NULL, NULL);
     check_error(err, "Zeroing flux_i buffer");
 
-    zero = (double *)calloc(sizeof(double),nang*nx*nz*ng);
-    err = clEnqueueWriteBuffer(queue[0], d_flux_j, CL_TRUE, 0, sizeof(double)*nang*nx*nz*ng, zero, 0, NULL, NULL);
-    free(zero);
+    err = clEnqueueWriteBuffer(queue[0], d_flux_j, CL_FALSE, 0, sizeof(double)*nang*nx*nz*ng, zero_edge, 0, NULL, NULL);
     check_error(err, "Zeroing flux_j buffer");
 
-    zero = (double *)calloc(sizeof(double),nang*nx*ny*ng);
-    err = clEnqueueWriteBuffer(queue[0], d_flux_k, CL_TRUE, 0, sizeof(double)*nang*nx*ny*ng, zero, 0, NULL, NULL);
-    free(zero);
+    err = clEnqueueWriteBuffer(queue[0], d_flux_k, CL_FALSE, 0, sizeof(double)*nang*nx*ny*ng, zero_edge, 0, NULL, NULL);
     check_error(err, "Zeroing flux_k buffer");
 }
 
@@ -514,6 +597,11 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
     err |= clSetKernelArg(k_sweep_cell, 25, sizeof(cl_mem), &d_denom);
     check_error(err, "Set sweep_cell kernel args");
 
+    // Store the number of cells up to the end of the previous plane
+    // Used to give the length of the wait list for the current plane
+    // cell enqueues
+    unsigned int last_event = 0;
+
     // Loop over the diagonal wavefronts
     for (unsigned int d = 0; d < ndiag; d++)
     {
@@ -538,19 +626,20 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
             check_error(err, "Setting sweep_cell kernel args cell positions");
 
             // Enqueue the kernel
-            err = clEnqueueNDRangeKernel(queue[l % NUM_QUEUES], k_sweep_cell, 2, 0, global, NULL, 0, NULL, NULL);
+            if (last_event == 0)
+                err = clEnqueueNDRangeKernel(queue[l % NUM_QUEUES], k_sweep_cell, 2, 0, global, NULL, 0, NULL, &events[0]);
+            else
+            {
+                err = clEnqueueNDRangeKernel(queue[l % NUM_QUEUES], k_sweep_cell, 2, 0, global, NULL, last_event, events, &events[last_event+l]);
+            }
             check_error(err, "Enqueue sweep_cell kernel");
         }
-        // Synchronise command queues at the end of the diagonal plance
-        if (NUM_QUEUES > 1)
-        {
-            for (int q = 0; q < NUM_QUEUES; q++)
-            {
-                err = clFinish(queue[q]);
-                check_error(err, "Finish queues in plane");
-            }
-        }
+        last_event += planes[d].num_cells;
     }
+    // Decrement the reference counters so the API can bin these events
+    for (int e = 0; e < nx*ny*nz; e++)
+        clReleaseEvent(events[e]);
+
 }
 
 // Perform a sweep over the grid for all the octants
@@ -570,11 +659,10 @@ void ocl_sweep_(void)
         zero_edge_flux_buffers_();
     }
 
-    for (int i = 0; i < NUM_QUEUES; i++)
-    {
-        err = clFinish(queue[i]);
-        check_error(err, "Finish queue");
-    }
+    // The last cell, and the copy zero array are on queue zero,
+    // so we only have to wait for this one
+    err = clFinish(queue[0]);
+    check_error(err, "Finish queue 0");
 
     // Free planes
     for (unsigned int i = 0; i < ndiag; i++)

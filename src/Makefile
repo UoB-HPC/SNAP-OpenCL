@@ -13,7 +13,7 @@ FORTRAN = mpif90
 #ifeq ($(FORTRAN),ifort)
 ifeq ($(FORTRAN),mpif90)
   TARGET = snap
-  FFLAGS = -O3 -openmp
+  FFLAGS = -O3
   FFLAG2 =
   ifeq ($(OPT),no)
     TARGET = snap_db
@@ -23,9 +23,22 @@ ifeq ($(FORTRAN),mpif90)
 endif
 
 CC = mpicc
-CFLAGS = -std=c99 -O3 -openmp
-OPENCL = -framework OpenCL
+CFLAGS = -std=c99 -O3
+ifeq ($(shell mpicc --showme:command),gcc)
+	CFLAGS += -fopenmp
+	FFLAGS += -fopenmp
+else
+ifeq ($(shell  mpicc --showme:command),icc)
+	CFLAGS += -openmp
+	FFLAGS += -openmp
+endif
+endif
 
+ifeq ($(shell uname), Darwin)
+	OPENCL = -framework OpenCL
+else
+	OPENCL = -lOpenCL
+endif
 
 #ifeq ($(FORTRAN),gfortran)
 #  TARGET = snapg
