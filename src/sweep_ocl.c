@@ -21,7 +21,7 @@
 // if you use the dedicated NVIDIA GPU instead
 #define NUM_QUEUES 1
 #else
-#define NUM_QUEUES 4
+#define NUM_QUEUES 12
 #endif
 
 // Global OpenCL handles (context, queue, etc.)
