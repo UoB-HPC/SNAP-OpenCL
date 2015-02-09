@@ -630,7 +630,7 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
                 err = clEnqueueNDRangeKernel(queue[l % NUM_QUEUES], k_sweep_cell, 2, 0, global, NULL, 0, NULL, &events[0]);
             else
             {
-                err = clEnqueueNDRangeKernel(queue[l % NUM_QUEUES], k_sweep_cell, 2, 0, global, NULL, last_event, events, &events[last_event+l]);
+                err = clEnqueueNDRangeKernel(queue[l % NUM_QUEUES], k_sweep_cell, 2, 0, global, NULL, planes[d-1].num_cells, events+last_event-planes[d-1].num_cells, &events[last_event+l]);
             }
             check_error(err, "Enqueue sweep_cell kernel");
         }
