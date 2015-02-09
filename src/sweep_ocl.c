@@ -536,6 +536,39 @@ plane *compute_sweep_order(void)
     return planes;
 }
 
+// Set all the kernel arguments that are constant over each octant sweep
+void set_sweep_cell_args(void)
+{
+    cl_int err;
+    // Set the kernel arguments
+    err = clSetKernelArg(k_sweep_cell, 4, sizeof(int), &ichunk);
+    err |= clSetKernelArg(k_sweep_cell, 5, sizeof(int), &nx);
+    err |= clSetKernelArg(k_sweep_cell, 6, sizeof(int), &ny);
+    err |= clSetKernelArg(k_sweep_cell, 7, sizeof(int), &nz);
+    err |= clSetKernelArg(k_sweep_cell, 8, sizeof(int), &ng);
+    err |= clSetKernelArg(k_sweep_cell, 9, sizeof(int), &nang);
+    err |= clSetKernelArg(k_sweep_cell, 10, sizeof(int), &noct);
+    err |= clSetKernelArg(k_sweep_cell, 11, sizeof(int), &cmom);
+
+    err |= clSetKernelArg(k_sweep_cell, 12, sizeof(double), &d_dd_i);
+    err |= clSetKernelArg(k_sweep_cell, 13, sizeof(cl_mem), &d_dd_j);
+    err |= clSetKernelArg(k_sweep_cell, 14, sizeof(cl_mem), &d_dd_k);
+    err |= clSetKernelArg(k_sweep_cell, 15, sizeof(cl_mem), &d_mu);
+    err |= clSetKernelArg(k_sweep_cell, 16, sizeof(cl_mem), &d_scat_coeff);
+    err |= clSetKernelArg(k_sweep_cell, 17, sizeof(cl_mem), &d_time_delta);
+    err |= clSetKernelArg(k_sweep_cell, 18, sizeof(cl_mem), &d_total_cross_section);
+
+    err |= clSetKernelArg(k_sweep_cell, 21, sizeof(cl_mem), &d_flux_i);
+    err |= clSetKernelArg(k_sweep_cell, 22, sizeof(cl_mem), &d_flux_j);
+    err |= clSetKernelArg(k_sweep_cell, 23, sizeof(cl_mem), &d_flux_k);
+
+
+    err |= clSetKernelArg(k_sweep_cell, 24, sizeof(cl_mem), &d_source);
+    err |= clSetKernelArg(k_sweep_cell, 25, sizeof(cl_mem), &d_denom);
+    check_error(err, "Set sweep_cell kernel args");
+
+}
+
 // Enqueue the kernels to sweep over the grid and compute the angular flux
 // Kernel: cell
 // Work-group: energy group
@@ -570,47 +603,24 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
 
     const size_t global[2] = {nang, ng};
 
-    // Set the kernel arguments
     err = clSetKernelArg(k_sweep_cell, 3, sizeof(unsigned int), &oct);
-    err |= clSetKernelArg(k_sweep_cell, 4, sizeof(int), &ichunk);
-    err |= clSetKernelArg(k_sweep_cell, 5, sizeof(int), &nx);
-    err |= clSetKernelArg(k_sweep_cell, 6, sizeof(int), &ny);
-    err |= clSetKernelArg(k_sweep_cell, 7, sizeof(int), &nz);
-    err |= clSetKernelArg(k_sweep_cell, 8, sizeof(int), &ng);
-    err |= clSetKernelArg(k_sweep_cell, 9, sizeof(int), &nang);
-    err |= clSetKernelArg(k_sweep_cell, 10, sizeof(int), &noct);
-    err |= clSetKernelArg(k_sweep_cell, 11, sizeof(int), &cmom);
+    check_error(err, "Setting octant for sweep_cell kernel");
 
-    err |= clSetKernelArg(k_sweep_cell, 12, sizeof(double), &d_dd_i);
-    err |= clSetKernelArg(k_sweep_cell, 13, sizeof(cl_mem), &d_dd_j);
-    err |= clSetKernelArg(k_sweep_cell, 14, sizeof(cl_mem), &d_dd_k);
-    err |= clSetKernelArg(k_sweep_cell, 15, sizeof(cl_mem), &d_mu);
-    err |= clSetKernelArg(k_sweep_cell, 16, sizeof(cl_mem), &d_scat_coeff);
-    err |= clSetKernelArg(k_sweep_cell, 17, sizeof(cl_mem), &d_time_delta);
-    err |= clSetKernelArg(k_sweep_cell, 18, sizeof(cl_mem), &d_total_cross_section);
 
     // Swap the angular flux pointers if necessary
     // Even timesteps: Read flux_in and write to flux_out
     // Odd timesteps: Read flux_out and write to flux_in
     if (timestep % 2 == 0)
     {
-        err |= clSetKernelArg(k_sweep_cell, 19, sizeof(cl_mem), &d_flux_in);
+        err = clSetKernelArg(k_sweep_cell, 19, sizeof(cl_mem), &d_flux_in);
         err |= clSetKernelArg(k_sweep_cell, 20, sizeof(cl_mem), &d_flux_out);
     }
     else
     {
-        err |= clSetKernelArg(k_sweep_cell, 19, sizeof(cl_mem), &d_flux_out);
+        err = clSetKernelArg(k_sweep_cell, 19, sizeof(cl_mem), &d_flux_out);
         err |= clSetKernelArg(k_sweep_cell, 20, sizeof(cl_mem), &d_flux_in);
     }
-
-    err |= clSetKernelArg(k_sweep_cell, 21, sizeof(cl_mem), &d_flux_i);
-    err |= clSetKernelArg(k_sweep_cell, 22, sizeof(cl_mem), &d_flux_j);
-    err |= clSetKernelArg(k_sweep_cell, 23, sizeof(cl_mem), &d_flux_k);
-
-
-    err |= clSetKernelArg(k_sweep_cell, 24, sizeof(cl_mem), &d_source);
-    err |= clSetKernelArg(k_sweep_cell, 25, sizeof(cl_mem), &d_denom);
-    check_error(err, "Set sweep_cell kernel args");
+    check_error(err, "Setting flux_in/out args for sweep_cell kernel");
 
     // Store the number of cells up to the end of the previous plane
     // Used to give the length of the wait list for the current plane
@@ -667,6 +677,9 @@ void ocl_sweep_(void)
 
     // Get the order of cells to enqueue
     plane *planes = compute_sweep_order();
+
+    // Set the constant kernel arguemnts
+    set_sweep_cell_args();
 
     for (int o = 0; o < noct; o++)
     {
