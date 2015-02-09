@@ -375,17 +375,27 @@ void copy_to_device_(
     d_dd_k = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang, NULL, &err);
     check_error(err, "Creating dd_k buffer");
 
-    d_mu = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang, mu, &err);
+    d_mu = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang, NULL, &err);
     check_error(err, "Creating mu buffer");
+    err = clEnqueueWriteBuffer(queue[0], d_mu, CL_FALSE, 0, sizeof(double)*nang, mu, 0, NULL, NULL);
+    check_error(err, "Copying mu buffer");
 
-    d_scat_coeff = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang*cmom*noct, scat_coef, &err);
+    d_scat_coeff = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang*cmom*noct, NULL, &err);
     check_error(err, "Creating scat_coef buffer");
+    err = clEnqueueWriteBuffer(queue[0], d_scat_coeff, CL_FALSE, 0, sizeof(double)*nang*cmom*noct, scat_coef, 0, NULL, NULL);
+    check_error(err, "Copying scat_coef buffer");
 
-    d_total_cross_section = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nx*ny*nz*ng, total_cross_section, &err);
+
+    d_total_cross_section = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nx*ny*nz*ng, NULL, &err);
     check_error(err, "Creating total_cross_section buffer");
+    err = clEnqueueWriteBuffer(queue[0], d_total_cross_section, CL_FALSE, 0, sizeof(double)*nx*ny*nz*ng, total_cross_section, 0, NULL, NULL);
+    check_error(err, "Copying total_cross_section buffer");
 
-    d_weights = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang, weights, &err);
+
+    d_weights = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang, NULL, &err);
     check_error(err, "Creating weights buffer");
+    err = clEnqueueWriteBuffer(queue[0], d_weights, CL_FALSE, 0, sizeof(double)*nang, weights, 0, NULL, NULL);
+    check_error(err, "Copying weights buffer");
 
     // Create buffers written to later
     d_denom = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang*nx*ny*nz*ng, NULL, &err);
@@ -400,7 +410,12 @@ void copy_to_device_(
     d_scalar_flux = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nx*ny*nz*ng, NULL, &err);
     check_error(err, "Creating scalar_flux buffer");
 
+    // Wait for the data to be on the device before returning
+    err = clFinish(queue[0]);
+    check_error(err, "Waiting for queue after buffer init");
+
 }
+
 
 // Copy the source term to the OpenCL device
 // source is the total source: qtot(cmom,nx,ny,nz,ng)
