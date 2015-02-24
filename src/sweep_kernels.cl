@@ -71,7 +71,7 @@ __kernel void sweep_cell(
     // at present.
 
     // Compute angular source
-    // Begin with first scattering moment)
+    // Begin with first scattering moment
     double source_term = source(0,i,j,k,g_idx);
 
     // Add in the anisotropic scattering source moments
