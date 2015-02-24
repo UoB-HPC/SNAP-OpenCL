@@ -280,6 +280,8 @@ MODULE sweep_module
     CALL ocl_scalar_flux
     CALL wtime ( t3 )
     PRINT *, "OCL", t3-t1
+    PRINT *, "OCL sweep", t2-t1
+    PRINT *, "OCL reduction", t3-t2
     PRINT *, "ORIG", t1-t0
     ocl_sweep_time = ocl_sweep_time + t3 - t1
     ocl_reduc_time = ocl_reduc_time + t3 - t2
