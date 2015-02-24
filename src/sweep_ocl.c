@@ -630,6 +630,14 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
     // Loop over the diagonal wavefronts
     for (unsigned int d = 0; d < ndiag; d++)
     {
+        for (int q = 0; q < NUM_QUEUES; q++)
+        {
+            if (last_event > 0)
+            {
+                err = clEnqueueWaitForEvents(queue[q], planes[d-1].num_cells, events+last_event-planes[d-1].num_cells);
+                check_error(err, "Enqueue wait between wavefront");
+            }
+        }
         // Loop through the list of cells in this plane
         for (unsigned int l = 0; l < planes[d].num_cells; l++)
         {
@@ -651,12 +659,7 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
             check_error(err, "Setting sweep_cell kernel args cell positions");
 
             // Enqueue the kernel
-            if (last_event == 0)
-                err = clEnqueueNDRangeKernel(queue[l % NUM_QUEUES], k_sweep_cell, 2, 0, global, NULL, 0, NULL, &events[0]);
-            else
-            {
-                err = clEnqueueNDRangeKernel(queue[l % NUM_QUEUES], k_sweep_cell, 2, 0, global, NULL, planes[d-1].num_cells, events+last_event-planes[d-1].num_cells, &events[last_event+l]);
-            }
+            err = clEnqueueNDRangeKernel(queue[l % NUM_QUEUES], k_sweep_cell, 2, 0, global, NULL, 0, NULL, &events[last_event+l]);
             check_error(err, "Enqueue sweep_cell kernel");
         }
         last_event += planes[d].num_cells;
