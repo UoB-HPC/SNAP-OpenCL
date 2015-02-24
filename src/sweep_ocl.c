@@ -182,7 +182,7 @@ void opencl_setup_(void)
     check_error(err, "Creating program");
 
     // Build program
-    char *options = "";
+    char *options = "-cl-mad-enable -cl-fast-relaxed-math";
     err = clBuildProgram(program, 1, &device, options, NULL, NULL);
     check_build_error(err, "Building program");
 
