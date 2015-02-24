@@ -75,7 +75,7 @@ __kernel void sweep_cell(
     double source_term = source(0,i,j,k,g_idx);
 
     // Add in the anisotropic scattering source moments
-    for (int l = 1; l < cmom; l++)
+    for (unsigned int l = 1; l < cmom; l++)
     {
         source_term += scat_coef(a_idx,l,oct) * source(l,i,j,k,g_idx);
     }
