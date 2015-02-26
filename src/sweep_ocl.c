@@ -268,8 +268,10 @@ void opencl_teardown_(void)
     err = clReleaseProgram(program);
     check_error(err, "Releasing program");
 
+#ifdef CL_VERSION_1_2
     err = clReleaseDevice(device);
     check_error(err, "Releasing device");
+#endif
 
     // Release context
     err = clReleaseContext(context);
