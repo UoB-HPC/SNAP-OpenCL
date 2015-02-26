@@ -634,8 +634,9 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
         {
             if (last_event > 0)
             {
-                err = clEnqueueWaitForEvents(queue[q], planes[d-1].num_cells, events+last_event-planes[d-1].num_cells);
-                check_error(err, "Enqueue wait between wavefront");
+                // Enqueue wait on the last event on each queue (in order queue)
+                int min = (planes[d-1].num_cells < NUM_QUEUES) ? planes[d-1].num_cells : NUM_QUEUES;
+                err = clEnqueueWaitForEvents(queue[q], min, events+last_event-min);
             }
         }
         // Loop through the list of cells in this plane
