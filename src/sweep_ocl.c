@@ -590,9 +590,9 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
     int zhi = ((order_3d >> (oct * 3 + 2)) & 1) ? nz : 0;
 
     // Set the order you traverse each axis
-    int istep = (xhi == nx) ? -1 : 0;
-    int jstep = (yhi == ny) ? -1 : 0;
-    int kstep = (zhi == nz) ? -1 : 0;
+    int istep = (xhi == nx) ? -1 : 1;
+    int jstep = (yhi == ny) ? -1 : 1;
+    int kstep = (zhi == nz) ? -1 : 1;
 
 
     cl_int err;
