@@ -686,11 +686,6 @@ void ocl_sweep_(void)
     t2 = omp_get_wtime();
     printf("setting args took %lfs\n", t2-t1);
 
-    cl_event stocks = clCreateUserEvent(context, &err);
-    check_error(err, "Creating user event");
-    err = clEnqueueWaitForEvents(queue[0], 1, &stocks);
-    check_error(err, "Set wait for user event");
-
     for (int o = 0; o < noct; o++)
     {
         t1 = omp_get_wtime();
@@ -702,13 +697,8 @@ void ocl_sweep_(void)
 
     // The last cell, and the copy zero array are on queue zero,
     // so we only have to wait for this one
-    t1 = omp_get_wtime();
-    err = clSetUserEventStatus(stocks, CL_COMPLETE);
-    check_error(err, "Setting user event");
     err = clFinish(queue[0]);
     check_error(err, "Finish queue 0");
-    t2 = omp_get_wtime();
-    printf("Execution took %lfs\n", t2-t1);
 
     // Free planes
     for (unsigned int i = 0; i < ndiag; i++)
