@@ -4,7 +4,6 @@
 *.mod
 
 # Binary files
-stringify_opencl
 snap
 
 # Source files
