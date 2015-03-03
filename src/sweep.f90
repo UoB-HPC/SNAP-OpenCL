@@ -78,7 +78,7 @@ MODULE sweep_module
 
     LOGICAL(l_knd) :: use_lock
 
-    REAL(r_knd) :: t1, t2, t3
+    REAL(r_knd) :: t1, t2, t3, t0
 !_______________________________________________________________________
 !
 !   Set up OpenMP lock if necessary.
@@ -86,6 +86,7 @@ MODULE sweep_module
 
     use_lock = nproc>1 .AND. nthreads>1 .AND.                          &
       thread_level/=thread_multiple
+    CALL wtime ( t0 )
 
     IF ( use_lock ) CALL plock_omp ( 'init' )
 !_______________________________________________________________________
@@ -278,6 +279,10 @@ MODULE sweep_module
     CALL wtime ( t2 )
     CALL ocl_scalar_flux
     CALL wtime ( t3 )
+    PRINT *, "OCL", t3-t1
+    PRINT *, "OCL sweep", t2-t1
+    PRINT *, "OCL reduction", t3-t2
+    PRINT *, "ORIG", t1-t0
     ocl_sweep_time = ocl_sweep_time + t3 - t1
     ocl_reduc_time = ocl_reduc_time + t3 - t2
 !_______________________________________________________________________

@@ -14,15 +14,9 @@
 // Include the kernel strings
 #include "sweep_kernels.h"
 
-#ifdef __APPLE__
-// The OS X OpenCL crashes on clWaitForEvents if
-// the events are over more than one command queue
-// is used for the CPU. It seems to work with 4 queues
-// if you use the dedicated NVIDIA GPU instead
-#define NUM_QUEUES 1
-#else
+
 #define NUM_QUEUES 4
-#endif
+
 
 // Global OpenCL handles (context, queue, etc.)
 cl_device_id device;
@@ -31,7 +25,7 @@ cl_command_queue queue[NUM_QUEUES];
 cl_program program;
 
 // OpenCL kernels
-cl_kernel k_sweep_cell;
+cl_kernel k_sweep_cell[NUM_QUEUES];
 cl_kernel k_reduce_angular;
 
 // OpenCL buffers
@@ -182,13 +176,16 @@ void opencl_setup_(void)
     check_error(err, "Creating program");
 
     // Build program
-    char *options = "";
+    char *options = "-cl-mad-enable -cl-fast-relaxed-math";
     err = clBuildProgram(program, 1, &device, options, NULL, NULL);
     check_build_error(err, "Building program");
 
     // Create kernels
-    k_sweep_cell = clCreateKernel(program, "sweep_cell", &err);
-    check_error(err, "Creating kernel sweep_cell");
+    for (int i = 0; i < NUM_QUEUES; i++)
+    {
+        k_sweep_cell[i] = clCreateKernel(program, "sweep_cell", &err);
+        check_error(err, "Creating kernel sweep_cell");
+    }
 
     k_reduce_angular = clCreateKernel(program, "reduce_angular", &err);
     check_error(err, "Creating kernel reduce_angular");
@@ -264,8 +261,11 @@ void opencl_teardown_(void)
     }
 
     // Release kernels
-    err = clReleaseKernel(k_sweep_cell);
-    check_error(err, "Releasing k_sweep_cell kernel");
+    for (int i = 0; i < NUM_QUEUES; i++)
+    {
+        err = clReleaseKernel(k_sweep_cell[i]);
+        check_error(err, "Releasing k_sweep_cell kernel");
+    }
 
     err = clReleaseKernel(k_reduce_angular);
     check_error(err, "Releasing k_reduce_angular kernel");
@@ -274,8 +274,10 @@ void opencl_teardown_(void)
     err = clReleaseProgram(program);
     check_error(err, "Releasing program");
 
+#ifdef CL_VERSION_1_2
     err = clReleaseDevice(device);
     check_error(err, "Releasing device");
+#endif
 
     // Release context
     err = clReleaseContext(context);
@@ -375,17 +377,27 @@ void copy_to_device_(
     d_dd_k = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang, NULL, &err);
     check_error(err, "Creating dd_k buffer");
 
-    d_mu = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang, mu, &err);
+    d_mu = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang, NULL, &err);
     check_error(err, "Creating mu buffer");
+    err = clEnqueueWriteBuffer(queue[0], d_mu, CL_FALSE, 0, sizeof(double)*nang, mu, 0, NULL, NULL);
+    check_error(err, "Copying mu buffer");
 
-    d_scat_coeff = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang*cmom*noct, scat_coef, &err);
+    d_scat_coeff = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang*cmom*noct, NULL, &err);
     check_error(err, "Creating scat_coef buffer");
+    err = clEnqueueWriteBuffer(queue[0], d_scat_coeff, CL_FALSE, 0, sizeof(double)*nang*cmom*noct, scat_coef, 0, NULL, NULL);
+    check_error(err, "Copying scat_coef buffer");
 
-    d_total_cross_section = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nx*ny*nz*ng, total_cross_section, &err);
+
+    d_total_cross_section = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nx*ny*nz*ng, NULL, &err);
     check_error(err, "Creating total_cross_section buffer");
+    err = clEnqueueWriteBuffer(queue[0], d_total_cross_section, CL_FALSE, 0, sizeof(double)*nx*ny*nz*ng, total_cross_section, 0, NULL, NULL);
+    check_error(err, "Copying total_cross_section buffer");
 
-    d_weights = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang, weights, &err);
+
+    d_weights = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang, NULL, &err);
     check_error(err, "Creating weights buffer");
+    err = clEnqueueWriteBuffer(queue[0], d_weights, CL_FALSE, 0, sizeof(double)*nang, weights, 0, NULL, NULL);
+    check_error(err, "Copying weights buffer");
 
     // Create buffers written to later
     d_denom = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang*nx*ny*nz*ng, NULL, &err);
@@ -400,7 +412,12 @@ void copy_to_device_(
     d_scalar_flux = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nx*ny*nz*ng, NULL, &err);
     check_error(err, "Creating scalar_flux buffer");
 
+    // Wait for the data to be on the device before returning
+    err = clFinish(queue[0]);
+    check_error(err, "Waiting for queue after buffer init");
+
 }
+
 
 // Copy the source term to the OpenCL device
 // source is the total source: qtot(cmom,nx,ny,nz,ng)
@@ -521,6 +538,42 @@ plane *compute_sweep_order(void)
     return planes;
 }
 
+// Set all the kernel arguments that are constant over each octant sweep
+void set_sweep_cell_args(void)
+{
+    cl_int err;
+    for (int i = 0; i < NUM_QUEUES; i++)
+    {
+        // Set the kernel arguments
+        err = clSetKernelArg(k_sweep_cell[i], 4, sizeof(int), &ichunk);
+        err |= clSetKernelArg(k_sweep_cell[i], 5, sizeof(int), &nx);
+        err |= clSetKernelArg(k_sweep_cell[i], 6, sizeof(int), &ny);
+        err |= clSetKernelArg(k_sweep_cell[i], 7, sizeof(int), &nz);
+        err |= clSetKernelArg(k_sweep_cell[i], 8, sizeof(int), &ng);
+        err |= clSetKernelArg(k_sweep_cell[i], 9, sizeof(int), &nang);
+        err |= clSetKernelArg(k_sweep_cell[i], 10, sizeof(int), &noct);
+        err |= clSetKernelArg(k_sweep_cell[i], 11, sizeof(int), &cmom);
+
+        err |= clSetKernelArg(k_sweep_cell[i], 12, sizeof(double), &d_dd_i);
+        err |= clSetKernelArg(k_sweep_cell[i], 13, sizeof(cl_mem), &d_dd_j);
+        err |= clSetKernelArg(k_sweep_cell[i], 14, sizeof(cl_mem), &d_dd_k);
+        err |= clSetKernelArg(k_sweep_cell[i], 15, sizeof(cl_mem), &d_mu);
+        err |= clSetKernelArg(k_sweep_cell[i], 16, sizeof(cl_mem), &d_scat_coeff);
+        err |= clSetKernelArg(k_sweep_cell[i], 17, sizeof(cl_mem), &d_time_delta);
+        err |= clSetKernelArg(k_sweep_cell[i], 18, sizeof(cl_mem), &d_total_cross_section);
+
+        err |= clSetKernelArg(k_sweep_cell[i], 21, sizeof(cl_mem), &d_flux_i);
+        err |= clSetKernelArg(k_sweep_cell[i], 22, sizeof(cl_mem), &d_flux_j);
+        err |= clSetKernelArg(k_sweep_cell[i], 23, sizeof(cl_mem), &d_flux_k);
+
+
+        err |= clSetKernelArg(k_sweep_cell[i], 24, sizeof(cl_mem), &d_source);
+        err |= clSetKernelArg(k_sweep_cell[i], 25, sizeof(cl_mem), &d_denom);
+        check_error(err, "Set sweep_cell kernel args");
+    }
+
+}
+
 // Enqueue the kernels to sweep over the grid and compute the angular flux
 // Kernel: cell
 // Work-group: energy group
@@ -546,57 +599,35 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
     int zhi = ((order_3d >> (oct * 3 + 2)) & 1) ? nz : 0;
 
     // Set the order you traverse each axis
-    int istep = (xhi == nx) ? -1 : 0;
-    int jstep = (yhi == ny) ? -1 : 0;
-    int kstep = (zhi == nz) ? -1 : 0;
+    int istep = (xhi == nx) ? -1 : 1;
+    int jstep = (yhi == ny) ? -1 : 1;
+    int kstep = (zhi == nz) ? -1 : 1;
 
 
     cl_int err;
 
     const size_t global[2] = {nang, ng};
 
-    // Set the kernel arguments
-    err = clSetKernelArg(k_sweep_cell, 3, sizeof(unsigned int), &oct);
-    err |= clSetKernelArg(k_sweep_cell, 4, sizeof(int), &ichunk);
-    err |= clSetKernelArg(k_sweep_cell, 5, sizeof(int), &nx);
-    err |= clSetKernelArg(k_sweep_cell, 6, sizeof(int), &ny);
-    err |= clSetKernelArg(k_sweep_cell, 7, sizeof(int), &nz);
-    err |= clSetKernelArg(k_sweep_cell, 8, sizeof(int), &ng);
-    err |= clSetKernelArg(k_sweep_cell, 9, sizeof(int), &nang);
-    err |= clSetKernelArg(k_sweep_cell, 10, sizeof(int), &noct);
-    err |= clSetKernelArg(k_sweep_cell, 11, sizeof(int), &cmom);
-
-    err |= clSetKernelArg(k_sweep_cell, 12, sizeof(double), &d_dd_i);
-    err |= clSetKernelArg(k_sweep_cell, 13, sizeof(cl_mem), &d_dd_j);
-    err |= clSetKernelArg(k_sweep_cell, 14, sizeof(cl_mem), &d_dd_k);
-    err |= clSetKernelArg(k_sweep_cell, 15, sizeof(cl_mem), &d_mu);
-    err |= clSetKernelArg(k_sweep_cell, 16, sizeof(cl_mem), &d_scat_coeff);
-    err |= clSetKernelArg(k_sweep_cell, 17, sizeof(cl_mem), &d_time_delta);
-    err |= clSetKernelArg(k_sweep_cell, 18, sizeof(cl_mem), &d_total_cross_section);
-
-    // Swap the angular flux pointers if necessary
-    // Even timesteps: Read flux_in and write to flux_out
-    // Odd timesteps: Read flux_out and write to flux_in
-    if (timestep % 2 == 0)
+    for (int qq = 0; qq < NUM_QUEUES; qq++)
     {
-        err |= clSetKernelArg(k_sweep_cell, 19, sizeof(cl_mem), &d_flux_in);
-        err |= clSetKernelArg(k_sweep_cell, 20, sizeof(cl_mem), &d_flux_out);
+        err = clSetKernelArg(k_sweep_cell[qq], 3, sizeof(unsigned int), &oct);
+        check_error(err, "Setting octant for sweep_cell kernel");
+
+        // Swap the angular flux pointers if necessary
+        // Even timesteps: Read flux_in and write to flux_out
+        // Odd timesteps: Read flux_out and write to flux_in
+        if (timestep % 2 == 0)
+        {
+            err = clSetKernelArg(k_sweep_cell[qq], 19, sizeof(cl_mem), &d_flux_in);
+            err |= clSetKernelArg(k_sweep_cell[qq], 20, sizeof(cl_mem), &d_flux_out);
+        }
+        else
+        {
+            err = clSetKernelArg(k_sweep_cell[qq], 19, sizeof(cl_mem), &d_flux_out);
+            err |= clSetKernelArg(k_sweep_cell[qq], 20, sizeof(cl_mem), &d_flux_in);
+        }
+        check_error(err, "Setting flux_in/out args for sweep_cell kernel");
     }
-    else
-    {
-        err |= clSetKernelArg(k_sweep_cell, 19, sizeof(cl_mem), &d_flux_out);
-        err |= clSetKernelArg(k_sweep_cell, 20, sizeof(cl_mem), &d_flux_in);
-    }
-
-    err |= clSetKernelArg(k_sweep_cell, 21, sizeof(cl_mem), &d_flux_i);
-    err |= clSetKernelArg(k_sweep_cell, 22, sizeof(cl_mem), &d_flux_j);
-    err |= clSetKernelArg(k_sweep_cell, 23, sizeof(cl_mem), &d_flux_k);
-
-
-    err |= clSetKernelArg(k_sweep_cell, 24, sizeof(cl_mem), &d_source);
-    err |= clSetKernelArg(k_sweep_cell, 25, sizeof(cl_mem), &d_denom);
-    check_error(err, "Set sweep_cell kernel args");
-
     // Store the number of cells up to the end of the previous plane
     // Used to give the length of the wait list for the current plane
     // cell enqueues
@@ -605,6 +636,16 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
     // Loop over the diagonal wavefronts
     for (unsigned int d = 0; d < ndiag; d++)
     {
+        for (int q = 0; q < NUM_QUEUES; q++)
+        {
+            if (last_event > 0)
+            {
+                // Enqueue wait on the last event on each queue (in order queue)
+                int min = (planes[d-1].num_cells < NUM_QUEUES) ? planes[d-1].num_cells : NUM_QUEUES;
+                err = clEnqueueWaitForEvents(queue[q], min, events+last_event-min);
+                check_error(err, "Enqueue wait for events between wavefront");
+            }
+        }
         // Loop through the list of cells in this plane
         for (unsigned int l = 0; l < planes[d].num_cells; l++)
         {
@@ -620,18 +661,13 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
                 k = nz - k - 1;
 
             // Set kernel args for cell index
-            err = clSetKernelArg(k_sweep_cell, 0, sizeof(unsigned int), &i);
-            err |= clSetKernelArg(k_sweep_cell, 1, sizeof(unsigned int), &j);
-            err |= clSetKernelArg(k_sweep_cell, 2, sizeof(unsigned int), &k);
+            err = clSetKernelArg(k_sweep_cell[l % NUM_QUEUES], 0, sizeof(unsigned int), &i);
+            err |= clSetKernelArg(k_sweep_cell[l % NUM_QUEUES], 1, sizeof(unsigned int), &j);
+            err |= clSetKernelArg(k_sweep_cell[l % NUM_QUEUES], 2, sizeof(unsigned int), &k);
             check_error(err, "Setting sweep_cell kernel args cell positions");
 
             // Enqueue the kernel
-            if (last_event == 0)
-                err = clEnqueueNDRangeKernel(queue[l % NUM_QUEUES], k_sweep_cell, 2, 0, global, NULL, 0, NULL, &events[0]);
-            else
-            {
-                err = clEnqueueNDRangeKernel(queue[l % NUM_QUEUES], k_sweep_cell, 2, 0, global, NULL, last_event, events, &events[last_event+l]);
-            }
+            err = clEnqueueNDRangeKernel(queue[l % NUM_QUEUES], k_sweep_cell[l % NUM_QUEUES], 2, 0, global, NULL, 0, NULL, &events[last_event+l]);
             check_error(err, "Enqueue sweep_cell kernel");
         }
         last_event += planes[d].num_cells;
@@ -651,11 +687,23 @@ void ocl_sweep_(void)
     unsigned int ndiag = ichunk + ny + nz - 2;
 
     // Get the order of cells to enqueue
+    double t1 = omp_get_wtime();
     plane *planes = compute_sweep_order();
+    double t2 = omp_get_wtime();
+    printf("computing order took %lfs\n",t2-t1);
+
+    // Set the constant kernel arguemnts
+    t1 = omp_get_wtime();
+    set_sweep_cell_args();
+    t2 = omp_get_wtime();
+    printf("setting args took %lfs\n", t2-t1);
 
     for (int o = 0; o < noct; o++)
     {
+        t1 = omp_get_wtime();
         enqueue_octant(global_timestep, o, ndiag, planes);
+        t2 = omp_get_wtime();
+        printf("octant %d enqueue took %lfs\n", o, t2-t1);
         zero_edge_flux_buffers_();
     }
 
