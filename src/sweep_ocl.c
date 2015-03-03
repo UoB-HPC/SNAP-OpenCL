@@ -730,6 +730,8 @@ void get_output_flux_(double* flux_out)
     else
         err = clEnqueueReadBuffer(queue[0], d_flux_in, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, tmp, 0, NULL, NULL);
     check_error(err, "Reading d_flux_out");
+
+    // Transpose the data into the original SNAP format
     for (int a = 0; a < nang; a++)
         for (int g = 0; g < ng; g++)
             for (int i = 0; i < nx; i++)
