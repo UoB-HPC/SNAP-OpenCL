@@ -432,8 +432,18 @@ void copy_source_to_device_(double *source)
 void copy_denom_to_device_(double *denom)
 {
     cl_int err;
-    err = clEnqueueWriteBuffer(queue[0], d_denom, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*ng, denom, 0, NULL, NULL);
+    double *tmp = (double *)malloc(sizeof(double)*nang*ng*nx*ny*nz);
+    // Transpose the denominator from the original SNAP format
+    for (int a = 0; a < nang; a++)
+        for (int g = 0; g < ng; g++)
+            for (int i = 0; i < nx; i++)
+                for (int j = 0; j < ny; j++)
+                    for (int k = 0; k < nz; k++)
+                        tmp[a+(nang*g)+(nang*ng*i)+(nang*ng*nx*j)+(nang*ng*nx*ny*k)] = denom[a+(nang*i)+(nang*nx*j)+(nang*nx*ny*k)+(nang*nx*ny*nz*g)];
+
+    err = clEnqueueWriteBuffer(queue[0], d_denom, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*ng, tmp, 0, NULL, NULL);
     check_error(err, "Copying denom buffer");
+    free(tmp);
 
 }
 

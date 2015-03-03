@@ -8,7 +8,7 @@
 #define flux_i(a,g,j,k) flux_i[a+(nang*g)+(nang*ng*j)+(nang*ng*ny*k)]
 #define flux_j(a,g,i,k) flux_j[a+(nang*g)+(nang*ng*i)+(nang*ng*nx*k)]
 #define flux_k(a,g,i,j) flux_k[a+(nang*g)+(nang*ng*i)+(nang*ng*nx*j)]
-#define denom(a,i,j,k,g) denom[a+(nang*i)+(nang*nx*j)+(nang*nx*ny*k)+(nang*nx*ny*nz*g)]
+#define denom(a,g,i,j,k) denom[a+(nang*g)+(nang*ng*i)+(nang*ng*nx*j)+(nang*ng*nx*ny*k)]
 #define dd_j(a) dd_j[a]
 #define dd_k(a) dd_k[a]
 #define mu(a) mu[a]
@@ -88,7 +88,7 @@ __kernel void sweep_cell(
         psi += time_delta(g_idx) * flux_in(a_idx,g_idx,i,j,k,oct);
     }
 
-    psi *= denom(a_idx,i,j,k,g_idx);
+    psi *= denom(a_idx,g_idx,i,j,k);
 
     // Compute upwind fluxes
     double tmp_flux_i = 2.0*psi - flux_i(a_idx,g_idx,j,k);
