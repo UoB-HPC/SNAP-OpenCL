@@ -390,9 +390,17 @@ void copy_to_device_(
 
     d_total_cross_section = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nx*ny*nz*ng, NULL, &err);
     check_error(err, "Creating total_cross_section buffer");
-    err = clEnqueueWriteBuffer(queue[0], d_total_cross_section, CL_FALSE, 0, sizeof(double)*nx*ny*nz*ng, total_cross_section, 0, NULL, NULL);
-    check_error(err, "Copying total_cross_section buffer");
 
+    // Reorder the memory layout before copy
+    double *tmp = (double *)malloc(sizeof(double)*nx*ny*nz*ng);
+    for (unsigned int i = 0; i < nx; i++)
+        for (unsigned int j = 0; j < ny; j++)
+            for (unsigned int k = 0; k < nz; k++)
+                for (unsigned int g = 0; g < ng; g++)
+                    tmp[g+(ng*i)+(ng*nx*j)+(ng*nx*ny*k)] = total_cross_section[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)];
+    err = clEnqueueWriteBuffer(queue[0], d_total_cross_section, CL_FALSE, 0, sizeof(double)*nx*ny*nz*ng, tmp, 0, NULL, NULL);
+    check_error(err, "Copying total_cross_section buffer");
+    free(tmp);
 
     d_weights = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang, NULL, &err);
     check_error(err, "Creating weights buffer");

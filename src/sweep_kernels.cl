@@ -14,7 +14,7 @@
 #define mu(a) mu[a]
 #define scat_coef(a,m,o) scat_coef[a+(nang*m)+(nang*cmom*o)]
 #define time_delta(g) time_delta[g]
-#define total_cross_section(i,j,k,g) total_cross_section[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)]
+#define total_cross_section(g,i,j,k) total_cross_section[g+(ng*i)+(ng*nx*j)+(ng*nx*ny*k)]
 #define scalar(i,j,k,g) scalar[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)]
 #define weights(a) weights[a]
 #define angular(a,g,i,j,k,o) angular[a+(nang*g)+(nang*ng*i)+(nang*ng*nx*j)+(nang*ng*nx*ny*k)+(nang*ng*nx*ny*nz*o)]
@@ -138,7 +138,7 @@ __kernel void sweep_cell(
                 psi += time_delta(g_idx) * flux_in(a_idx,g_idx,i,j,k,oct) * (1.0+zeros[3]);
             }
             psi = 0.5*psi + source_term;
-            double recalc_denom = total_cross_section(i,j,k,g_idx);
+            double recalc_denom = total_cross_section(g_idx,i,j,k);
             recalc_denom += mu(a_idx) * dd_i * zeros[0];
             recalc_denom += dd_j(a_idx) * zeros[1];
             recalc_denom += dd_k(a_idx) * zeros[2];
