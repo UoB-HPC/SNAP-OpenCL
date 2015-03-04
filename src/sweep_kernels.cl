@@ -62,8 +62,8 @@ __kernel void sweep_cell(
     )
 {
     // Get indexes for angle and group
-    int a_idx = get_global_id(0);
-    int g_idx = get_global_id(1);
+    int a_idx = get_global_id(0) % nang;
+    int g_idx = get_global_id(0) / nang;
 
     // Assume transmissive (vacuum boundaries) and that we
     // are sweeping the whole grid so have access to all neighbours
@@ -110,6 +110,8 @@ __kernel void sweep_cell(
     {
         double zeros[4] = {1.0, 1.0, 1.0, 1.0};
         int num_to_fix = 4;
+        // TODO
+        // This while loop causes the the kernel NOT to vectorize in a 1d kernel case for the intel opencl sdk
         while (
             tmp_flux_i < 0.0 ||
             tmp_flux_j < 0.0 ||
