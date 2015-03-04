@@ -40,12 +40,12 @@ __kernel void sweep_cell(
 
     // Coefficients
     const double dd_i,
-    __global double *dd_j,
-    __global double *dd_k,
-    __global double *mu,
-    __global double *scat_coef,
-    __global double *time_delta,
-    __global double *total_cross_section,
+    __global const double *dd_j,
+    __global const double *dd_k,
+    __global const double *mu,
+    __global const double *scat_coef,
+    __global const double *time_delta,
+    __global const double *total_cross_section,
 
     // Angular flux
     __global double *flux_in,
@@ -57,8 +57,8 @@ __kernel void sweep_cell(
     __global double *flux_k,
 
     // Source
-    __global double *source,
-    __global double *denom
+    __global const double *source,
+    __global const double *denom
     )
 {
     // Get indexes for angle and group
