@@ -65,6 +65,9 @@ __kernel void sweep_cell(
     int a_idx = get_global_id(0) % nang;
     int g_idx = get_global_id(0) / nang;
 
+    if (a_idx >= nang || g_idx >= ng)
+        return;
+
     // Assume transmissive (vacuum boundaries) and that we
     // are sweeping the whole grid so have access to all neighbours
     // This means that we only consider the case for one MPI task
