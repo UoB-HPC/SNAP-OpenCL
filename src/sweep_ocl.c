@@ -626,6 +626,20 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
     cl_int err;
 
     const size_t global[1] = {nang * ng};
+    size_t local_val;
+    size_t *local;
+
+    char *local_size = getenv("SNAP_OCL_LOCAL");
+    if (local_size != NULL)
+    {
+
+        local_val = strtol(local_size, NULL, 10);
+        local = &local_val;
+    }
+    else
+    {
+        local = NULL;
+    }
 
     for (int qq = 0; qq < NUM_QUEUES; qq++)
     {
@@ -686,7 +700,7 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
             check_error(err, "Setting sweep_cell kernel args cell positions");
 
             // Enqueue the kernel
-            err = clEnqueueNDRangeKernel(queue[l % NUM_QUEUES], k_sweep_cell[l % NUM_QUEUES], 1, 0, global, NULL, 0, NULL, &events[last_event+l]);
+            err = clEnqueueNDRangeKernel(queue[l % NUM_QUEUES], k_sweep_cell[l % NUM_QUEUES], 1, 0, global, local, 0, NULL, &events[last_event+l]);
             check_error(err, "Enqueue sweep_cell kernel");
         }
         last_event += planes[d].num_cells;
