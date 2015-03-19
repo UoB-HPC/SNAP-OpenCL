@@ -60,12 +60,13 @@ cl_event *events;
 // big enough for each of them
 double *zero_edge;
 
+#define check_error(e,m) __check_error(e,m,__LINE__)
 // Check OpenCL errors and exit if no success
-void check_error(cl_int err, char *msg)
+void __check_error(cl_int err, char *msg, int line)
 {
     if (err != CL_SUCCESS)
     {
-        fprintf(stderr, "Error %d: %s\n", err, msg);
+        fprintf(stderr, "Error %d: %s on line %d\n", err, msg, line);
         exit(err);
     }
 }
