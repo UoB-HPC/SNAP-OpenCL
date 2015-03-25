@@ -43,10 +43,6 @@ void copy_to_device_(
     // Create array for OpenCL events - one for each cell
     events = calloc(sizeof(cl_event),nx*ny*nz);
 
-    // Create a host array for the angular flux
-    h_flux_in = (double *)calloc(sizeof(double),nang*ng*nx*ny*nz*noct);
-    h_flux_out = (double *)calloc(sizeof(double),nang*ng*nx*ny*nz*noct);
-
     // Create zero array for the edge flux buffers
     // First we need maximum two of nx, ny and nz
     size_t s = nang * ng;
@@ -62,10 +58,10 @@ void copy_to_device_(
     // Create buffers and copy data to device
     cl_int err;
 
-    d_flux_in = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nang*nx*ny*nz*ng, NULL, &err);
+    d_flux_in = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nang*nx*ny*nz*noct*ng, NULL, &err);
     check_error(err, "Creating flux_in buffer");
 
-    d_flux_out = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nang*nx*ny*nz*ng, NULL, &err);
+    d_flux_out = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nang*nx*ny*nz*noct*ng, NULL, &err);
     check_error(err, "Creating flux_out buffer");
 
     zero_centre_flux_in_buffer_();
@@ -151,13 +147,13 @@ void get_scalar_flux_(double *scalar)
 // Copy the flux_out buffer back to the host
 void get_output_flux_(double* flux_out)
 {
-    // double *tmp = calloc(sizeof(double),nang*ng*nx*ny*nz*noct);
-    // cl_int err;
-    // if (global_timestep % 2 == 0)
-    //     err = clEnqueueReadBuffer(queue[0], d_flux_out, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*ng, tmp, 0, NULL, NULL);
-    // else
-    //     err = clEnqueueReadBuffer(queue[0], d_flux_in, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*ng, tmp, 0, NULL, NULL);
-    // check_error(err, "Reading d_flux_out");
+    double *tmp = calloc(sizeof(double),nang*ng*nx*ny*nz*noct);
+    cl_int err;
+    if (global_timestep % 2 == 0)
+        err = clEnqueueReadBuffer(queue[0], d_flux_out, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, tmp, 0, NULL, NULL);
+    else
+        err = clEnqueueReadBuffer(queue[0], d_flux_in, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, tmp, 0, NULL, NULL);
+    check_error(err, "Reading d_flux_out");
 
     // Transpose the data into the original SNAP format
     for (int a = 0; a < nang; a++)
@@ -166,11 +162,6 @@ void get_output_flux_(double* flux_out)
                 for (int j = 0; j < ny; j++)
                     for (int k = 0; k < nz; k++)
                         for (int o = 0; o < noct; o++)
-                        {
-                            if (global_timestep % 2 == 0)
-                                    flux_out[a+(nang*i)+(nang*nx*j)+(nang*nx*ny*k)+(nang*nx*ny*nz*o)+(nang*nx*ny*nz*noct*g)] = h_flux_out[a+(nang*g)+(nang*ng*i)+(nang*ng*nx*j)+(nang*ng*nx*ny*k)+(nang*ng*nx*ny*nz*o)];
-                                else
-                                    flux_out[a+(nang*i)+(nang*nx*j)+(nang*nx*ny*k)+(nang*nx*ny*nz*o)+(nang*nx*ny*nz*noct*g)] = h_flux_in[a+(nang*g)+(nang*ng*i)+(nang*ng*nx*j)+(nang*ng*nx*ny*k)+(nang*ng*nx*ny*nz*o)];
-                        }
-    // free(tmp);
+                            flux_out[a+(nang*i)+(nang*nx*j)+(nang*nx*ny*k)+(nang*nx*ny*nz*o)+(nang*nx*ny*nz*noct*g)] = tmp[a+(nang*g)+(nang*ng*i)+(nang*ng*nx*j)+(nang*ng*nx*ny*k)+(nang*ng*nx*ny*nz*o)];
+    free(tmp);
 }

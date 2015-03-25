@@ -125,8 +125,6 @@ void opencl_teardown_(void)
 
     // Release the zero edge array
     free(zero_edge);
-    free(h_flux_in);
-    free(h_flux_out);
 
     cl_int err;
 
