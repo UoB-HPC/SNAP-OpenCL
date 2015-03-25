@@ -73,7 +73,9 @@ endif
 OBJS = global.o snap_main.o utils.o version.o plib.o geom.o sn.o \
        data.o control.o input.o setup.o dealloc.o translv.o solvar.o \
        outer.o expxs.o inner.o sweep.o octsweep.o dim1_sweep.o dim3_sweep.o \
-       output.o time.o mms.o sweep_ocl.o
+       output.o time.o mms.o $(OCL_OBJS)
+
+OCL_OBJS = sweep_ocl.o ocl_init.o ocl_scalar.o ocl_memory.o ocl_iterations.o
 
 SRCS = global.f90 snap_main.f90 utils.f90 version.f90 plib.f90 geom.f90 \
        sn.f90 data.f90 control.f90 input.f90 setup.f90 dealloc.f90 \
@@ -127,6 +129,7 @@ mms.o:	global.o geom.o sn.o data.o control.o plib.o
 	$(CC) $(CFLAGS) -c $< $(OPENCL)
 
 sweep_ocl.o: sweep_kernels.h
+
 
 
 #
