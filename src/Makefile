@@ -125,11 +125,10 @@ mms.o:	global.o geom.o sn.o data.o control.o plib.o
 #
 # C rule
 #
-%.o:	%.c
+%.o:	%.c ocl_sweep.h
 	$(CC) $(CFLAGS) -c $< $(OPENCL)
 
-ocl_sweep.o: ocl_kernels.h
-
+ocl_init.o:	ocl_kernels.h
 
 
 #
