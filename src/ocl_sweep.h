@@ -62,12 +62,12 @@ double *zero_edge;
 unsigned int global_timestep;
 
 // Check OpenCL errors and exit if no success
-#define check_error(e,m) __check_error(e,m,__LINE__)
-static void __check_error(cl_int err, char *msg, int line)
+#define check_error(e,m) __check_error(e,m,__LINE__,__FILE__)
+static void __check_error(cl_int err, char *msg, int line, char *file)
 {
     if (err != CL_SUCCESS)
     {
-        fprintf(stderr, "Error %d: %s on line %d\n", err, msg, line);
+        fprintf(stderr, "Error %d: %s on line %d in %s\n", err, msg, line, file);
         exit(err);
     }
 };
