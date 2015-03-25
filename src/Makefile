@@ -128,14 +128,14 @@ mms.o:	global.o geom.o sn.o data.o control.o plib.o
 %.o:	%.c
 	$(CC) $(CFLAGS) -c $< $(OPENCL)
 
-ocl_sweep.o: sweep_kernels.h
+ocl_sweep.o: ocl_kernels.h
 
 
 
 #
 # Create OpenCL kernel header files
 #
-sweep_kernels.h:	sweep_kernels.cl
+ocl_kernels.h:	ocl_kernels.cl
 	./stringify_opencl $< $@
 
 #

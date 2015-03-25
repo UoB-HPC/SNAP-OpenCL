@@ -2,7 +2,7 @@
 #include "ocl_sweep.h"
 
 // Include the kernel strings
-#include "sweep_kernels.h"
+#include "ocl_kernels.h"
 
 #define MAX_DEVICES 12
 
@@ -93,7 +93,7 @@ void opencl_setup_(void)
     }
 
     // Create program
-    program = clCreateProgramWithSource(context, 1, &sweep_kernels_ocl, NULL, &err);
+    program = clCreateProgramWithSource(context, 1, &ocl_kernels_ocl, NULL, &err);
     check_error(err, "Creating program");
 
     // Build program

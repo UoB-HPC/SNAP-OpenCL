@@ -7,4 +7,6 @@
 snap
 
 # Source files
-src/sweep_kernels.h
+src/ocl_kernels.h
+
+.DS_Store
