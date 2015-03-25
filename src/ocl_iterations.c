@@ -69,8 +69,12 @@ void zero_edge_flux_buffers_(void)
 void zero_centre_flux_in_buffer_(void)
 {
     cl_int err;
-    double *zero = (double *)calloc(sizeof(double),nang*nx*ny*nz*noct*ng);
-    err = clEnqueueWriteBuffer(queue[0], d_flux_in, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, zero, 0, NULL, NULL);
+    double *zero = (double *)calloc(sizeof(double),nang*nx*ny*nz*ng);
+    for (unsigned int o = 0; o < noct; o++)
+    {
+        err = clEnqueueWriteBuffer(queue[0], d_flux_in[0], CL_FALSE, 0, sizeof(double)*nang*nx*ny*nz*ng, zero, 0, NULL, NULL);
+        check_error(err, "Copying flux_in to device");
+    }
+    err = clFinish(queue[0]);
     free(zero);
-    check_error(err, "Copying flux_in to device");
 }

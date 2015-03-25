@@ -132,11 +132,17 @@ void opencl_teardown_(void)
     err = clReleaseMemObject(d_source);
     check_error(err, "Releasing d_source buffer");
 
-    err = clReleaseMemObject(d_flux_in);
-    check_error(err, "Releasing d_flux_in buffer");
+    for (unsigned int o = 0; o < noct; o++)
+    {
+        err = clReleaseMemObject(d_flux_in[o]);
+        check_error(err, "Releasing d_flux_in buffer");
 
-    err = clReleaseMemObject(d_flux_out);
-    check_error(err, "Releasing d_flux_out buffer");
+        err = clReleaseMemObject(d_flux_out[o]);
+        check_error(err, "Releasing d_flux_out buffer");
+    }
+
+    free(d_flux_in);
+    free(d_flux_out);
 
     err = clReleaseMemObject(d_flux_i);
     check_error(err, "Releasing d_flux_i buffer");

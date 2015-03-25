@@ -170,13 +170,13 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
         // Odd timesteps: Read flux_out and write to flux_in
         if (timestep % 2 == 0)
         {
-            err = clSetKernelArg(k_sweep_cell[qq], 19, sizeof(cl_mem), &d_flux_in);
-            err |= clSetKernelArg(k_sweep_cell[qq], 20, sizeof(cl_mem), &d_flux_out);
+            err = clSetKernelArg(k_sweep_cell[qq], 19, sizeof(cl_mem), &d_flux_in[oct]);
+            err |= clSetKernelArg(k_sweep_cell[qq], 20, sizeof(cl_mem), &d_flux_out[oct]);
         }
         else
         {
-            err = clSetKernelArg(k_sweep_cell[qq], 19, sizeof(cl_mem), &d_flux_out);
-            err |= clSetKernelArg(k_sweep_cell[qq], 20, sizeof(cl_mem), &d_flux_in);
+            err = clSetKernelArg(k_sweep_cell[qq], 19, sizeof(cl_mem), &d_flux_out[oct]);
+            err |= clSetKernelArg(k_sweep_cell[qq], 20, sizeof(cl_mem), &d_flux_in[oct]);
         }
         check_error(err, "Setting flux_in/out args for sweep_cell kernel");
     }

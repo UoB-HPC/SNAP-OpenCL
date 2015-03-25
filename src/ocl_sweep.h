@@ -29,8 +29,8 @@ cl_kernel k_reduce_angular;
 
 // OpenCL buffers
 cl_mem d_source;
-cl_mem d_flux_in;
-cl_mem d_flux_out;
+cl_mem *d_flux_in;
+cl_mem *d_flux_out;
 cl_mem d_flux_i;
 cl_mem d_flux_j;
 cl_mem d_flux_k;

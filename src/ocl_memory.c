@@ -58,11 +58,17 @@ void copy_to_device_(
     // Create buffers and copy data to device
     cl_int err;
 
-    d_flux_in = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nang*nx*ny*nz*noct*ng, NULL, &err);
-    check_error(err, "Creating flux_in buffer");
+    d_flux_in = malloc(sizeof(cl_mem)*noct);
+    d_flux_out = malloc(sizeof(cl_mem)*noct);
 
-    d_flux_out = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nang*nx*ny*nz*noct*ng, NULL, &err);
-    check_error(err, "Creating flux_out buffer");
+    for (unsigned int o = 0; o < noct; o++)
+    {
+        d_flux_in[o] = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nang*nx*ny*nz*ng, NULL, &err);
+        check_error(err, "Creating flux_in buffer");
+
+        d_flux_out[o] = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nang*nx*ny*nz*ng, NULL, &err);
+        check_error(err, "Creating flux_out buffer");
+    }
 
     zero_centre_flux_in_buffer_();
 
@@ -149,10 +155,13 @@ void get_output_flux_(double* flux_out)
 {
     double *tmp = calloc(sizeof(double),nang*ng*nx*ny*nz*noct);
     cl_int err;
-    if (global_timestep % 2 == 0)
-        err = clEnqueueReadBuffer(queue[0], d_flux_out, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, tmp, 0, NULL, NULL);
-    else
-        err = clEnqueueReadBuffer(queue[0], d_flux_in, CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*noct*ng, tmp, 0, NULL, NULL);
+    for (unsigned int o = 0; o < noct; o++)
+    {
+        if (global_timestep % 2 == 0)
+            err = clEnqueueReadBuffer(queue[0], d_flux_out[o], CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*ng, &(tmp[nang*ng*nx*ny*nz*o]), 0, NULL, NULL);
+        else
+            err = clEnqueueReadBuffer(queue[0], d_flux_in[o], CL_TRUE, 0, sizeof(double)*nang*nx*ny*nz*ng, &(tmp[nang*ng*nx*ny*nz*o]), 0, NULL, NULL);
+    }
     check_error(err, "Reading d_flux_out");
 
     // Transpose the data into the original SNAP format

@@ -2,8 +2,8 @@
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 
 // Array indexing macros
-#define flux_out(a,g,i,j,k,o) flux_out[a+(nang*g)+(nang*ng*i)+(nang*ng*nx*j)+(nang*ng*nx*ny*k)+(nang*ng*nx*ny*nz*o)]
-#define flux_in(a,g,i,j,k,o) flux_in[a+(nang*g)+(nang*ng*i)+(nang*ng*nx*j)+(nang*ng*nx*ny*k)+(nang*ng*nx*ny*nz*o)]
+#define flux_out(a,g,i,j,k) flux_out[a+(nang*g)+(nang*ng*i)+(nang*ng*nx*j)+(nang*ng*nx*ny*k)]
+#define flux_in(a,g,i,j,k) flux_in[a+(nang*g)+(nang*ng*i)+(nang*ng*nx*j)+(nang*ng*nx*ny*k)]
 #define source(m,i,j,k,g) source[m+(cmom*i)+(cmom*nx*j)+(cmom*nx*ny*k)+(cmom*nx*ny*nz*g)]
 #define flux_i(a,g,j,k) flux_i[a+(nang*g)+(nang*ng*j)+(nang*ng*ny*k)]
 #define flux_j(a,g,i,k) flux_j[a+(nang*g)+(nang*ng*i)+(nang*ng*nx*k)]
@@ -88,7 +88,7 @@ __kernel void sweep_cell(
     // Add contribution from last timestep flux if time-dependant
     if (time_delta(g_idx) != 0.0)
     {
-        psi += time_delta(g_idx) * flux_in(a_idx,g_idx,i,j,k,oct);
+        psi += time_delta(g_idx) * flux_in(a_idx,g_idx,i,j,k);
     }
 
     psi *= denom(a_idx,g_idx,i,j,k);
@@ -101,7 +101,7 @@ __kernel void sweep_cell(
     // Time differencing on final flux value
     if (time_delta(g_idx) != 0.0)
     {
-        psi = 2.0 * psi - flux_in(a_idx,g_idx,i,j,k,oct);
+        psi = 2.0 * psi - flux_in(a_idx,g_idx,i,j,k);
     }
 
     // Perform the fixup loop
@@ -140,7 +140,7 @@ __kernel void sweep_cell(
             psi = flux_i(a_idx,g_idx,j,k)*mu(a_idx)*dd_i*(1.0+zeros[0]) + flux_j(a_idx,g_idx,j,k)*dd_j(a_idx)*(1.0+zeros[1]) + flux_k(a_idx,g_idx,i,j)*dd_k(a_idx)*(1.0+zeros[2]);
             if (time_delta(g_idx) != 0.0)
             {
-                psi += time_delta(g_idx) * flux_in(a_idx,g_idx,i,j,k,oct) * (1.0+zeros[3]);
+                psi += time_delta(g_idx) * flux_in(a_idx,g_idx,i,j,k) * (1.0+zeros[3]);
             }
             psi = 0.5*psi + source_term;
             double recalc_denom = total_cross_section(g_idx,i,j,k);
@@ -164,7 +164,7 @@ __kernel void sweep_cell(
             tmp_flux_k = 2.0 * psi - flux_k(a_idx,g_idx,i,j);
             if (time_delta(g_idx) != 0.0)
             {
-                psi = 2.0*psi - flux_in(a_idx,g_idx,i,j,k,oct);
+                psi = 2.0*psi - flux_in(a_idx,g_idx,i,j,k);
             }
         }
         // Fix up loop is done, just need to set the final values
@@ -178,7 +178,7 @@ __kernel void sweep_cell(
     flux_i(a_idx,g_idx,j,k) = tmp_flux_i;
     flux_j(a_idx,g_idx,i,k) = tmp_flux_j;
     flux_k(a_idx,g_idx,i,j) = tmp_flux_k;
-    flux_out(a_idx,g_idx,i,j,k,oct) = psi;
+    flux_out(a_idx,g_idx,i,j,k) = psi;
     return;
 }
 
