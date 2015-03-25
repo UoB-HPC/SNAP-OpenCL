@@ -268,13 +268,16 @@ SUBROUTINE translv
     END IF
   END DO
 
+  PRINT *, ocl_angular_flux(:,1,1,1,1,1)
+  PRINT *, ptr_out(:,1,1,1,1,1)
+
 !_______________________________________________________________________
 !
 !   Compute the Scalar Flux from the angular flux using OpenCL
 !_______________________________________________________________________
 
-  CALL ocl_scalar_flux
-  CALL get_scalar_flux( scalar_flux )
+  !CALL ocl_scalar_flux
+  !CALL get_scalar_flux( scalar_flux )
 
   IF ( ALL ( ABS ( scalar_flux - flux ) < 1.0E-13_r_knd ) ) THEN
     PRINT *, "Scalar flux matched"

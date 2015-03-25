@@ -104,6 +104,43 @@ void set_sweep_cell_args(void)
 
 }
 
+// Copy the octant data from the host to the device for the required octant
+void get_octant_flux(const unsigned int oct, const unsigned int timestep)
+{
+    cl_int err;
+    if (timestep % 2 == 0)
+    {
+        // Set the data in the flux in buffer
+        err = clEnqueueWriteBuffer(queue[0], d_flux_in, CL_TRUE, 0, sizeof(double)*nang*ng*nx*ny*nx, &(h_flux_in[nang*ng*nx*ny*nz*oct]), 0, NULL, NULL);
+        check_error(err, "Copying octant data");
+    }
+    else
+    {
+        // Set the data in the flux out buffer
+        err = clEnqueueWriteBuffer(queue[0], d_flux_out, CL_TRUE, 0, sizeof(double)*nang*ng*nx*ny*nx, &(h_flux_out[nang*ng*nx*ny*nz*oct]), 0, NULL, NULL);
+        check_error(err, "Copying octant data");
+    }
+}
+
+// Copy the octant data from the device to the host for the required octant
+void save_octant_flux(const unsigned int oct, const unsigned int timestep)
+{
+    cl_int err;
+    if (timestep % 2 == 0)
+    {
+        // Set the data in the flux in buffer
+        err = clEnqueueReadBuffer(queue[0], d_flux_out, CL_TRUE, 0, sizeof(double)*nang*ng*nx*ny*nx, &(h_flux_out[nang*ng*nx*ny*nz*oct]), 0, NULL, NULL);
+        check_error(err, "Copying octant data");
+    }
+    else
+    {
+        // Set the data in the flux out buffer
+        err = clEnqueueReadBuffer(queue[0], d_flux_in, CL_TRUE, 0, sizeof(double)*nang*ng*nx*ny*nx, &(h_flux_in[nang*ng*nx*ny*nz*oct]), 0, NULL, NULL);
+        check_error(err, "Copying octant data");
+    }
+}
+
+
 // Enqueue the kernels to sweep over the grid and compute the angular flux
 // Kernel: cell
 // Work-group: energy group
@@ -132,7 +169,6 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
     int istep = (xhi == nx) ? -1 : 1;
     int jstep = (yhi == ny) ? -1 : 1;
     int kstep = (zhi == nz) ? -1 : 1;
-
 
     cl_int err;
 
@@ -228,6 +264,7 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
     for (int e = 0; e < nx*ny*nz; e++)
         clReleaseEvent(events[e]);
 
+
 }
 
 // Perform a sweep over the grid for all the octants
@@ -253,7 +290,9 @@ void ocl_sweep_(void)
     for (int o = 0; o < noct; o++)
     {
         t1 = omp_get_wtime();
+        get_octant_flux(o, global_timestep);
         enqueue_octant(global_timestep, o, ndiag, planes);
+        save_octant_flux(o, global_timestep);
         t2 = omp_get_wtime();
         printf("octant %d enqueue took %lfs\n", o, t2-t1);
         zero_edge_flux_buffers_();
