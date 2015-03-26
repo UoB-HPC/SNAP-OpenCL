@@ -72,7 +72,7 @@ void zero_centre_flux_in_buffer_(void)
     double *zero = (double *)calloc(sizeof(double),nang*nx*ny*nz*ng);
     for (unsigned int o = 0; o < noct; o++)
     {
-        err = clEnqueueWriteBuffer(queue[0], d_flux_in[0], CL_FALSE, 0, sizeof(double)*nang*nx*ny*nz*ng, zero, 0, NULL, NULL);
+        err = clEnqueueWriteBuffer(queue[0], d_flux_in[o], CL_FALSE, 0, sizeof(double)*nang*nx*ny*nz*ng, zero, 0, NULL, NULL);
         check_error(err, "Copying flux_in to device");
     }
     err = clFinish(queue[0]);
