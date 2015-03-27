@@ -106,74 +106,60 @@ __kernel void sweep_cell(
     }
 
     // Perform the fixup loop
-    if (
-            tmp_flux_i < 0.0 ||
-            tmp_flux_j < 0.0 ||
-            tmp_flux_k < 0.0 ||
-            psi < 0.0)
+    double zeros[4] = {1.0, 1.0, 1.0, 1.0};
+    int num_to_fix = 4;
+    // Fixup is a bounded loop as we will worst case fix up each face and centre value one after each other
+    for (int fix = 0; fix < 4; fix++)
     {
-        double zeros[4] = {1.0, 1.0, 1.0, 1.0};
-        int num_to_fix = 4;
-        // TODO
-        // This while loop causes the the kernel NOT to vectorize in a 1d kernel case for the intel opencl sdk
-        while (
-            tmp_flux_i < 0.0 ||
-            tmp_flux_j < 0.0 ||
-            tmp_flux_k < 0.0 ||
-            psi < 0.0)
+        // Record which ones are zero
+        if (tmp_flux_i < 0.0) zeros[0] = 0.0;
+        if (tmp_flux_j < 0.0) zeros[1] = 0.0;
+        if (tmp_flux_k < 0.0) zeros[2] = 0.0;
+        if (psi < 0.0) zeros[3] = 0.0;
+
+        if (num_to_fix == zeros[0] + zeros[1] + zeros[2] + zeros[3])
         {
-
-
-            // Record which ones are zero
-            if (tmp_flux_i < 0.0) zeros[0] = 0.0;
-            if (tmp_flux_j < 0.0) zeros[1] = 0.0;
-            if (tmp_flux_k < 0.0) zeros[2] = 0.0;
-            if (psi < 0.0) zeros[3] = 0.0;
-
-            if (num_to_fix == zeros[0] + zeros[1] + zeros[2] + zeros[3])
-            {
-                // We have fixed up enough
-                break;
-            }
-            num_to_fix = zeros[0] + zeros[1] + zeros[2] + zeros[3];
-
-            // Recompute cell centre value
-            psi = flux_i(a_idx,g_idx,j,k)*mu(a_idx)*dd_i*(1.0+zeros[0]) + flux_j(a_idx,g_idx,j,k)*dd_j(a_idx)*(1.0+zeros[1]) + flux_k(a_idx,g_idx,i,j)*dd_k(a_idx)*(1.0+zeros[2]);
-            if (time_delta(g_idx) != 0.0)
-            {
-                psi += time_delta(g_idx) * flux_in(a_idx,g_idx,i,j,k) * (1.0+zeros[3]);
-            }
-            psi = 0.5*psi + source_term;
-            double recalc_denom = total_cross_section(g_idx,i,j,k);
-            recalc_denom += mu(a_idx) * dd_i * zeros[0];
-            recalc_denom += dd_j(a_idx) * zeros[1];
-            recalc_denom += dd_k(a_idx) * zeros[2];
-            recalc_denom += time_delta(g_idx) * zeros[3];
-
-            if (recalc_denom > 1.0E-12)
-            {
-                psi /= recalc_denom;
-            }
-            else
-            {
-                psi = 0.0;
-            }
-
-            // Recompute the edge fluxes with the new centre value
-            tmp_flux_i = 2.0 * psi - flux_i(a_idx,g_idx,j,k);
-            tmp_flux_j = 2.0 * psi - flux_j(a_idx,g_idx,i,k);
-            tmp_flux_k = 2.0 * psi - flux_k(a_idx,g_idx,i,j);
-            if (time_delta(g_idx) != 0.0)
-            {
-                psi = 2.0*psi - flux_in(a_idx,g_idx,i,j,k);
-            }
+            // We have fixed up enough
+            break;
         }
-        // Fix up loop is done, just need to set the final values
-        tmp_flux_i = tmp_flux_i * zeros[0];
-        tmp_flux_j = tmp_flux_j * zeros[1];
-        tmp_flux_k = tmp_flux_k * zeros[2];
-        psi = psi * zeros[3];
+        num_to_fix = zeros[0] + zeros[1] + zeros[2] + zeros[3];
+
+        // Recompute cell centre value
+        psi = flux_i(a_idx,g_idx,j,k)*mu(a_idx)*dd_i*(1.0+zeros[0]) + flux_j(a_idx,g_idx,j,k)*dd_j(a_idx)*(1.0+zeros[1]) + flux_k(a_idx,g_idx,i,j)*dd_k(a_idx)*(1.0+zeros[2]);
+        if (time_delta(g_idx) != 0.0)
+        {
+            psi += time_delta(g_idx) * flux_in(a_idx,g_idx,i,j,k) * (1.0+zeros[3]);
+        }
+        psi = 0.5*psi + source_term;
+        double recalc_denom = total_cross_section(g_idx,i,j,k);
+        recalc_denom += mu(a_idx) * dd_i * zeros[0];
+        recalc_denom += dd_j(a_idx) * zeros[1];
+        recalc_denom += dd_k(a_idx) * zeros[2];
+        recalc_denom += time_delta(g_idx) * zeros[3];
+
+        if (recalc_denom > 1.0E-12)
+        {
+            psi /= recalc_denom;
+        }
+        else
+        {
+            psi = 0.0;
+        }
+
+        // Recompute the edge fluxes with the new centre value
+        tmp_flux_i = 2.0 * psi - flux_i(a_idx,g_idx,j,k);
+        tmp_flux_j = 2.0 * psi - flux_j(a_idx,g_idx,i,k);
+        tmp_flux_k = 2.0 * psi - flux_k(a_idx,g_idx,i,j);
+        if (time_delta(g_idx) != 0.0)
+        {
+            psi = 2.0*psi - flux_in(a_idx,g_idx,i,j,k);
+        }
     }
+    // Fix up loop is done, just need to set the final values
+    tmp_flux_i = tmp_flux_i * zeros[0];
+    tmp_flux_j = tmp_flux_j * zeros[1];
+    tmp_flux_k = tmp_flux_k * zeros[2];
+    psi = psi * zeros[3];
 
     // Write values to global memory
     flux_i(a_idx,g_idx,j,k) = tmp_flux_i;
