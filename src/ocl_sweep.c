@@ -147,12 +147,12 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
 
         local_val = strtol(local_size, NULL, 10);
         local = &local_val;
-        printf("Setting local work-group size to %d\n", local_val);
+        printf("Setting local work-group size to %lu\n", local_val);
         // Pad the global size to a multiple of the local size
         if (global[0] % local_val > 0)
         {
             global[0] += local_val - (global[0] % local_val);
-            printf("Resetting global size from %d to %d\n", nang*ng, global[0]);
+            printf("Resetting global size from %d to %lu\n", nang*ng, global[0]);
         }
     }
     else
