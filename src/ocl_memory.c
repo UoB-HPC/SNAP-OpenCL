@@ -5,6 +5,22 @@
 extern void zero_edge_flux_buffers_(void);
 extern void zero_centre_flux_in_buffer_(void);
 
+// Check the devices available memory to check the angular flux will fit in the device
+void check_device_memory(void)
+{
+    cl_int err;
+    cl_ulong max_alloc;
+    err = clGetDeviceInfo(device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &max_alloc, NULL);
+    check_error(err, "Getting max allocation size");
+    unsigned int memory = sizeof(double)*nang*ng*nx*ny*nz*noct;
+    if (max_alloc < memory)
+    {
+        fprintf(stderr, "Error: Device does not support a big enough array for the angular flux\n");
+        exit(-1);
+    }
+
+}
+
 // Create buffers and copy the flux, source and
 // cross section arrays to the OpenCL device
 //
@@ -39,6 +55,8 @@ void copy_to_device_(
     noct = *noct_;
     cmom = *cmom_;
     ichunk = *ichunk_;
+
+    check_device_memory();
 
     // Create array for OpenCL events - one for each cell
     events = calloc(sizeof(cl_event),nx*ny*nz);

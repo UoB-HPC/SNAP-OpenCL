@@ -73,6 +73,11 @@ void opencl_setup_(void)
     // Get the first or chosen device
     cl_device_id devices[MAX_DEVICES];
     unsigned int num_devices = get_devices(devices);
+    if (device_index >= num_devices)
+    {
+        fprintf(stderr, "Error: Invalid device index %d. Only %d devices available.\n", device_index, num_devices);
+        exit(-1);
+    }
     device = devices[device_index];
 
     // Print device name
