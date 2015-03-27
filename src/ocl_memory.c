@@ -12,10 +12,21 @@ void check_device_memory(void)
     cl_ulong max_alloc;
     err = clGetDeviceInfo(device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &max_alloc, NULL);
     check_error(err, "Getting max allocation size");
-    unsigned int memory = sizeof(double)*nang*ng*nx*ny*nz*noct;
+    unsigned int memory = sizeof(double)*nang*ng*nx*ny*nz;
     if (max_alloc < memory)
     {
         fprintf(stderr, "Error: Device does not support a big enough array for the angular flux\n");
+        exit(-1);
+    }
+
+    cl_ulong global_memory;
+    err = clGetDeviceInfo(device, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &global_memory, NULL);
+    check_error(err, "Getting global memory size");
+    if (global_memory < 2 * noct * memory)
+    {
+        fprintf(stderr, "Error: Device does not have enough global memory for angular flux arrays\n");
+        fprintf(stderr, "Required: %.1f GB\n", (2.0 * noct * memory)/(1024.0*1024.0*1024.0));
+        fprintf(stderr, "Available %.1f GB.\n", (float)global_memory/(1024.0*1024.0*1024.0));
         exit(-1);
     }
 
