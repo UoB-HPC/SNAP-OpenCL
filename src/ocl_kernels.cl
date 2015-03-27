@@ -17,8 +17,9 @@
 #define total_cross_section(g,i,j,k) total_cross_section[g+(ng*i)+(ng*nx*j)+(ng*nx*ny*k)]
 #define scalar(i,j,k,g) scalar[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)]
 #define weights(a) weights[a]
-#define angular(a,g,i,j,k,o) angular[a+(nang*g)+(nang*ng*i)+(nang*ng*nx*j)+(nang*ng*nx*ny*k)+(nang*ng*nx*ny*nz*o)]
-#define angular_prev(a,g,i,j,k,o) angular_prev[a+(nang*g)+(nang*ng*i)+(nang*ng*nx*j)+(nang*ng*nx*ny*k)+(nang*ng*nx*ny*nz*o)]
+
+#define angular(a,g,i,j,k,o) angular##o[a+(nang*g)+(nang*ng*i)+(nang*ng*nx*j)+(nang*ng*nx*ny*k)]
+#define angular_prev(a,g,i,j,k,o) angular_prev##o[a+(nang*g)+(nang*ng*i)+(nang*ng*nx*j)+(nang*ng*nx*ny*k)]
 
 // Solve the transport equations for a single angle in a single cell for a single group
 __kernel void sweep_cell(
@@ -195,11 +196,28 @@ __kernel void reduce_angular(
     const unsigned int nang,
     const unsigned int ng,
     const unsigned int noct,
-    __global double *weights,
-    __global double *angular,
-    __global double *angular_prev,
-    __global double *time_delta,
-    __global double *scalar)
+    __global const double * restrict weights,
+
+    __global const double * restrict angular0,
+    __global const double * restrict angular1,
+    __global const double * restrict angular2,
+    __global const double * restrict angular3,
+    __global const double * restrict angular4,
+    __global const double * restrict angular5,
+    __global const double * restrict angular6,
+    __global const double * restrict angular7,
+
+    __global const double * restrict angular_prev0,
+    __global const double * restrict angular_prev1,
+    __global const double * restrict angular_prev2,
+    __global const double * restrict angular_prev3,
+    __global const double * restrict angular_prev4,
+    __global const double * restrict angular_prev5,
+    __global const double * restrict angular_prev6,
+    __global const double * restrict angular_prev7,
+
+    __global const double * restrict time_delta,
+    __global double * restrict scalar)
 {
     // Cell index
     int i = get_global_id(0);
@@ -210,25 +228,35 @@ __kernel void reduce_angular(
     for (unsigned int g = 0; g < ng; g++)
     {
         double tot_g = 0.0;
-        // For octants
-        for (unsigned int o = 0; o < noct; o++)
+        // For angles
+        for (unsigned int a = 0; a < nang; a++)
         {
-            // For angles
-            for (unsigned int a = 0; a < nang; a++)
+            // NOTICE: we do the reduction with psi, not ptr_out.
+            // This means that (line 307) the time dependant
+            // case isnt the value that is summed, but rather the
+            // flux in the cell
+            // Note all work items will all take the same branch
+            if (time_delta(g) != 0.0)
             {
-                // NOTICE: we do the reduction with psi, not ptr_out.
-                // This means that (line 307) the time dependant
-                // case isnt the value that is summed, but rather the
-                // flux in the cell
-                // Note all work items will all take the same branch
-                if (time_delta(g) != 0.0)
-                {
-                    tot_g += weights(a) * (0.5 * (angular(a,g,i,j,k,o) + angular_prev(a,g,i,j,k,o)));
-                }
-                else
-                {
-                    tot_g += weights(a) * angular(a,g,i,j,k,o);
-                }
+                tot_g += weights(a) * (0.5 * (angular(a,g,i,j,k,0) + angular_prev(a,g,i,j,k,0)));
+                tot_g += weights(a) * (0.5 * (angular(a,g,i,j,k,1) + angular_prev(a,g,i,j,k,1)));
+                tot_g += weights(a) * (0.5 * (angular(a,g,i,j,k,2) + angular_prev(a,g,i,j,k,2)));
+                tot_g += weights(a) * (0.5 * (angular(a,g,i,j,k,3) + angular_prev(a,g,i,j,k,3)));
+                tot_g += weights(a) * (0.5 * (angular(a,g,i,j,k,4) + angular_prev(a,g,i,j,k,4)));
+                tot_g += weights(a) * (0.5 * (angular(a,g,i,j,k,5) + angular_prev(a,g,i,j,k,5)));
+                tot_g += weights(a) * (0.5 * (angular(a,g,i,j,k,6) + angular_prev(a,g,i,j,k,6)));
+                tot_g += weights(a) * (0.5 * (angular(a,g,i,j,k,7) + angular_prev(a,g,i,j,k,7)));
+            }
+            else
+            {
+                tot_g += weights(a) * angular(a,g,i,j,k,0);
+                tot_g += weights(a) * angular(a,g,i,j,k,1);
+                tot_g += weights(a) * angular(a,g,i,j,k,2);
+                tot_g += weights(a) * angular(a,g,i,j,k,3);
+                tot_g += weights(a) * angular(a,g,i,j,k,4);
+                tot_g += weights(a) * angular(a,g,i,j,k,5);
+                tot_g += weights(a) * angular(a,g,i,j,k,6);
+                tot_g += weights(a) * angular(a,g,i,j,k,7);
             }
         }
         scalar(i,j,k,g) = tot_g;
