@@ -21,7 +21,7 @@ SUBROUTINE translv
     qim
 
   USE control_module, ONLY: nsteps, timedep, dt, oitm, otrdone,        &
-    control_alloc, control_dealloc, dfmxo, it_det
+    control_alloc, control_dealloc, dfmxo, it_det, iitm
 
   USE utils_module, ONLY: print_error, stop_run
 
@@ -120,7 +120,8 @@ SUBROUTINE translv
 
   CALL wtime ( ocl_first_copy_tic )
 
-  CALL copy_to_device ( nx, ny_gl, nz_gl, ng, nang, noct, cmom, ichunk, nsteps, mu, ec, t_xs, w, ptr_in )
+  CALL set_ocl_problem ( nx, ny_gl, nz_gl, ng, nang, noct, cmom, ichunk, nsteps, oitm, iitm )
+  CALL copy_to_device ( mu, ec, t_xs, w, ptr_in )
 
   CALL wtime ( ocl_first_copy_toc )
 
