@@ -32,7 +32,6 @@ void check_device_memory(void)
 
     // Calculate total memory usage
     unsigned long total = 2 * noct * memory;
-    printf("%lu\n", total);
     total += sizeof(double)*nang*ny*nz*ng;
     total += sizeof(double)*nang*nx*nz*ng;
     total += sizeof(double)*nang*nx*ny*ng;
