@@ -75,6 +75,7 @@ void copy_to_device_(
     int *nx_, int *ny_, int *nz_,
     int *ng_, int *nang_, int *noct_, int *cmom_,
     int *ichunk_,
+    int *timesteps_,
     double *mu, double *scat_coef,
     double *total_cross_section,
     double *weights,
@@ -89,6 +90,7 @@ void copy_to_device_(
     noct = *noct_;
     cmom = *cmom_;
     ichunk = *ichunk_;
+    timesteps = *timesteps_;
 
     check_device_memory();
 
