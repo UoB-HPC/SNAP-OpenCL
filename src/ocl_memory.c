@@ -5,7 +5,7 @@
 extern void zero_edge_flux_buffers_(void);
 extern void zero_centre_flux_in_buffer_(void);
 
-// Check the devices available memory to check the angular flux will fit in the device
+// Check the devices available memory to check everything will fit in the device
 void check_device_memory(void)
 {
     cl_int err;
@@ -29,6 +29,30 @@ void check_device_memory(void)
         fprintf(stderr, "Available %.1f GB.\n", (float)global_memory/(1024.0*1024.0*1024.0));
         exit(-1);
     }
+
+    // Calculate total memory usage
+    unsigned long total = 2 * noct * memory;
+    printf("%lu\n", total);
+    total += sizeof(double)*nang*ny*nz*ng;
+    total += sizeof(double)*nang*nx*nz*ng;
+    total += sizeof(double)*nang*nx*ny*ng;
+    total += 3 * sizeof(double)*nang;
+    total += sizeof(double)*nang*cmom*noct;
+    total += sizeof(double)*nx*ny*nz*ng;
+    total += sizeof(double)*nang;
+    total += sizeof(double)*nang*nx*ny*nz*ng;
+    total += sizeof(double)*cmom*nx*ny*nz*ng;
+    total += sizeof(double)*ng;
+    total += sizeof(double)*nx*ny*nz*ng;
+
+    if (global_memory < total)
+    {
+        fprintf(stderr, "Error: Device does not have enough global memory for all the buffers\n");
+        fprintf(stderr, "Required: %.1f GB\n", (double)total/(1024.0*1024.0*1024.0));
+        fprintf(stderr, "Available %.1f GB.\n", (double)global_memory/(1024.0*1024.0*1024.0));
+        exit(-1);
+    }
+
 
 }
 
