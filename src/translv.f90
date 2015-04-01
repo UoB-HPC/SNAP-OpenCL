@@ -15,10 +15,10 @@ SUBROUTINE translv
   USE geom_module, ONLY: geom_alloc, geom_dealloc, dinv, param_calc,   &
     nx, ny_gl, nz_gl, diag_setup, hi, hj, hk, dx, dy, dz
 
-  USE sn_module, ONLY: nang, noct, mu, eta, xi, cmom, ec, w
+  USE sn_module, ONLY: nang, noct, mu, eta, xi, cmom, ec, w, nmom, lma
 
   USE data_module, ONLY: ng, v, vdelt, mat, sigt, siga, slgg, src_opt, &
-    qim, nmat
+    qim, nmat, qi
 
   USE control_module, ONLY: nsteps, timedep, dt, oitm, otrdone,        &
     control_alloc, control_dealloc, dfmxo, it_det, iitm
@@ -26,7 +26,7 @@ SUBROUTINE translv
   USE utils_module, ONLY: print_error, stop_run
 
   USE solvar_module, ONLY: solvar_alloc, ptr_in, ptr_out, t_xs, a_xs,  &
-    s_xs, flux, fluxm
+    s_xs, flux, fluxm, q2grp
 
   USE expxs_module, ONLY: expxs_reg, expxs_slgg
 
@@ -120,8 +120,8 @@ SUBROUTINE translv
 
   CALL wtime ( ocl_first_copy_tic )
 
-  CALL set_ocl_problem ( nx, ny_gl, nz_gl, ng, nang, noct, cmom, ichunk, dx, dy, dz, dt, nmat, nsteps, oitm, iitm )
-  CALL copy_to_device ( mu, eta, xi, ec, t_xs, w, v, sigt, mat, ptr_in )
+  CALL set_ocl_problem ( nx, ny_gl, nz_gl, ng, nang, noct, cmom, nmom, ichunk, dx, dy, dz, dt, nmat, nsteps, oitm, iitm )
+  CALL copy_to_device ( mu, eta, xi, ec, t_xs, w, v, sigt, mat, qi, slgg, lma, q2grp, ptr_in )
 
   CALL wtime ( ocl_first_copy_toc )
 
@@ -132,7 +132,7 @@ SUBROUTINE translv
 !   Run the iteration loops on OpenCL device
 !_______________________________________________________________________
 
-  !CALL ocl_iterations
+  CALL ocl_iterations
 
 !_______________________________________________________________________
 !
@@ -228,21 +228,6 @@ SUBROUTINE translv
           vdelt(g), dinv(:,:,:,:,g) )
       END DO
   !$OMP END PARALLEL DO
-
-!_______________________________________________________________________
-!
-!     Copy the dinv array just calculated to the device
-!_______________________________________________________________________
-
-      !CALL wtime ( ocl_update_tic )
-      !CALL copy_denom_to_device ( dinv )
-      !CALL copy_dd_coefficients_to_device ( hi, hj, hk )
-      !CALL copy_time_delta_to_device ( vdelt )
-      !CALL copy_total_cross_section_to_device ( t_xs )
-      !CALL wtime ( ocl_update_toc )
-      CALL ocl_iterations
-
-      !ocl_copy_time = ocl_copy_time + ocl_update_toc - ocl_update_tic
 
 !_______________________________________________________________________
 !

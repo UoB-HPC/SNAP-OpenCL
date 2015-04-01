@@ -31,6 +31,7 @@ cl_kernel k_calc_denominator;
 cl_kernel k_calc_time_delta;
 cl_kernel k_calc_dd_coefficients;
 cl_kernel k_calc_total_cross_section;
+cl_kernel k_calc_outer_source;
 
 // OpenCL buffers
 cl_mem d_source;
@@ -54,7 +55,11 @@ cl_mem d_velocity;
 cl_mem d_scalar_flux;
 cl_mem d_xs;
 cl_mem d_map;
-
+cl_mem d_fixed_source;
+cl_mem d_gg_cs;
+cl_mem d_lma;
+cl_mem d_g2g_source;
+cl_mem d_scalar_mom;
 
 // List of OpenCL events, one for each cell
 // This is used to encourage spacial parallelism by

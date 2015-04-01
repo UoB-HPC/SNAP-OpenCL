@@ -28,6 +28,12 @@
 #define map(i,j,k) map[i+(nx*j)+(nx*ny*k)]
 #define xs(i,g) xs[i+(nmat*g)]
 
+#define g2g_source(m,i,j,k,g) g2g_source[m+(nmom*i)+(nmom*nx*j)+(nmom*nx*ny*k)+(nmom*nx*ny*nz*g)]
+#define fixed_source(i,j,k,g) fixed_source[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)]
+#define gg_cs(m,l,g1,g2) gg_cs[m+(nmat*l)+(nmat*nmom*g1)+(nmat*nmom*ng*g2)]
+#define lma(m) lma[m]
+#define scalar_mom(m,i,j,k,g) scalar_mom[m+(nmom*i)+(nmom*nx*j)+(nmom*nx*ny+k)+(nmom*nx*ny*nz*g)]
+
 // Solve the transport equations for a single angle in a single cell for a single group
 __kernel void sweep_cell(
     // Current cell index
@@ -344,3 +350,53 @@ __kernel void calc_total_cross_section(
         }
     }
 }
+
+// Calculate the outer source
+__kernel void calc_outer_source(
+    const unsigned int nx,
+    const unsigned int ny,
+    const unsigned int nz,
+    const unsigned int ng,
+    const unsigned int nmom,
+    const unsigned int nmat,
+
+    __global const int * restrict map,
+    __global const double * restrict gg_cs,
+    __global const double * restrict fixed_source,
+    __global const int * restrict lma,
+
+    __global const double * restrict scalar,
+    __global const double * restrict scalar_mom,
+
+    __global double * restrict g2g_source
+    )
+{
+    const unsigned int g1 = get_global_id(0);
+
+    for (unsigned int k = 0; k < nz; k++)
+        for (unsigned int j = 0; j < ny; j++)
+            for (unsigned int i = 0; i < nx; i++)
+            {
+                g2g_source(0,i,j,k,g1) = fixed_source(i,j,k,g1);
+                for (unsigned int g2 = 0; g2 < ng; g2++)
+                {
+                    if (g1 == g2)
+                        continue;
+
+                    g2g_source(0,i,j,k,g1) += gg_cs(map(i,j,k)-1,0,g1,g2) * scalar(i,j,k,g2);
+
+                    unsigned int mom = 1;
+                    for (unsigned int l = 1; l < nmom; l++)
+                    {
+                        for (unsigned int m = 0; m < lma(l); m++)
+                        {
+                            g2g_source(mom,i,j,k,g1) += gg_cs(map(i,j,k)-1,l,g1,g2) * scalar_mom(mom-1,i,j,k,g2);
+                            mom++;
+                        }
+                    }
+                }
+            }
+    if (g1 == 0)
+        printf("%lf\n", g2g_source(1,nx-1,ny-1,nz-1,ng-1));
+}
+

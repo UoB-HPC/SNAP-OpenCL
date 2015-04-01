@@ -94,6 +94,14 @@ void zero_centre_flux_in_buffer_(void)
     free(zero);
 }
 
+void zero_flux_moments_buffer(void)
+{
+    cl_int err;
+    double *zero = calloc(sizeof(double),(cmom-1)*nx*ny*nz*ng);
+    err = clEnqueueWriteBuffer(queue[0], d_scalar_mom, CL_TRUE, 0, sizeof(double)*(cmom-1)*nx*ny*nz*ng, zero, 0, NULL, NULL);
+    check_error(err, "Zeroing scalar_mom buffer");
+    free(zero);
+}
 
 // Calculate denominator on the device
 void calc_denom(void)
@@ -160,7 +168,7 @@ void calc_time_delta(void)
 }
 
 // Calculate the total cross section on the device
-void calc_total_cross_section(void)
+void expand_cross_section(cl_mem * in, cl_mem * out)
 {
     cl_int err;
     const size_t global[1] = {ng};
@@ -170,14 +178,39 @@ void calc_total_cross_section(void)
     err |= clSetKernelArg(k_calc_total_cross_section, 2, sizeof(unsigned int), &nz);
     err |= clSetKernelArg(k_calc_total_cross_section, 3, sizeof(unsigned int), &ng);
     err |= clSetKernelArg(k_calc_total_cross_section, 4, sizeof(unsigned int), &nmat);
-    err |= clSetKernelArg(k_calc_total_cross_section, 5, sizeof(cl_mem), &d_xs);
+    err |= clSetKernelArg(k_calc_total_cross_section, 5, sizeof(cl_mem), in);
     err |= clSetKernelArg(k_calc_total_cross_section, 6, sizeof(cl_mem), &d_map);
-    err |= clSetKernelArg(k_calc_total_cross_section, 7, sizeof(cl_mem), &d_total_cross_section);
+    err |= clSetKernelArg(k_calc_total_cross_section, 7, sizeof(cl_mem), out);
     check_error(err, "Setting calc_total_cross_section arguments");
 
     err = clEnqueueNDRangeKernel(queue[0], k_calc_total_cross_section, 1, 0, global, NULL, 0, NULL, NULL);
     check_error(err, "Enqueue calc_total_cross_section kernel");
 }
+
+void compute_outer_source(void)
+{
+    cl_int err;
+    const size_t global[1] = {ng};
+
+    err = clSetKernelArg(k_calc_outer_source, 0, sizeof(unsigned int), &nx);
+    err |= clSetKernelArg(k_calc_outer_source, 1, sizeof(unsigned int), &ny);
+    err |= clSetKernelArg(k_calc_outer_source, 2, sizeof(unsigned int), &nz);
+    err |= clSetKernelArg(k_calc_outer_source, 3, sizeof(unsigned int), &ng);
+    err |= clSetKernelArg(k_calc_outer_source, 4, sizeof(unsigned int), &nmom);
+    err |= clSetKernelArg(k_calc_outer_source, 5, sizeof(unsigned int), &nmat);
+    err |= clSetKernelArg(k_calc_outer_source, 6, sizeof(cl_mem), &d_map);
+    err |= clSetKernelArg(k_calc_outer_source, 7, sizeof(cl_mem), &d_gg_cs);
+    err |= clSetKernelArg(k_calc_outer_source, 8, sizeof(cl_mem), &d_fixed_source);
+    err |= clSetKernelArg(k_calc_outer_source, 9, sizeof(cl_mem), &d_lma);
+    err |= clSetKernelArg(k_calc_outer_source, 10, sizeof(cl_mem), &d_scalar_flux);
+    err |= clSetKernelArg(k_calc_outer_source, 11, sizeof(cl_mem), &d_scalar_mom);
+    err |= clSetKernelArg(k_calc_outer_source, 12, sizeof(cl_mem), &d_g2g_source);
+    check_error(err, "Setting calc_outer_source arguments");
+
+    err = clEnqueueNDRangeKernel(queue[0], k_calc_outer_source, 1, 0, global, NULL, 0, NULL, NULL);
+    check_error(err, "Enqueue calc_outer_source kernel");
+}
+
 
 // Do the timestep, outer and inner iterations
 void ocl_iterations_(void)
@@ -185,18 +218,26 @@ void ocl_iterations_(void)
     // Timestep loop
     for (unsigned int t = 0; t < timesteps; t++)
     {
-        calc_total_cross_section();
+        // Calculate data required at the beginning of each timestep
+        expand_cross_section(&d_xs, &d_total_cross_section);
         calc_dd_coefficients();
         calc_time_delta();
         calc_denom();
+        zero_flux_moments_buffer();
         // Outer loop
         for (unsigned int o = 0; o < outers; o++)
         {
+            // Compute the outer source
+            compute_outer_source();
+            // Save flux
+
             // Inner loop
             for (unsigned int i = 0; i < inners; i++)
             {
                 ;
             }
+            // Check convergence
+
         }
     }
     clFinish(queue[0]);

@@ -128,6 +128,9 @@ void opencl_setup_(void)
     k_calc_total_cross_section = clCreateKernel(program, "calc_total_cross_section", &err);
     check_error(err, "Creating kernel calc_total_cross_section");
 
+    k_calc_outer_source = clCreateKernel(program, "calc_outer_source", &err);
+    check_error(err, "Creating kernel calc_outer_source");
+
     printf("\nOpenCL environment setup complete\n\n");
 
 }
@@ -212,6 +215,21 @@ void opencl_teardown_(void)
     err = clReleaseMemObject(d_map);
     check_error(err, "Releasing d_map buffer");
 
+    err = clReleaseMemObject(d_fixed_source);
+    check_error(err, "Releasing d_fixed_source buffer");
+
+    err = clReleaseMemObject(d_gg_cs);
+    check_error(err, "Releasing d_gg_cs buffer");
+
+    err = clReleaseMemObject(d_lma);
+    check_error(err, "Releasing d_lma buffer");
+
+    err = clReleaseMemObject(d_g2g_source);
+    check_error(err, "Releasing d_g2g_source buffer");
+
+    err = clReleaseMemObject(d_scalar_mom);
+    check_error(err, "Releasing d_scalar_mom buffer");
+
     for (int i = 0; i < NUM_QUEUES; i++)
     {
         err = clReleaseCommandQueue(queue[i]);
@@ -239,6 +257,9 @@ void opencl_teardown_(void)
 
     err = clReleaseKernel(k_calc_total_cross_section);
     check_error(err, "Releasing k_calc_total_cross_section kernel");
+
+    err = clReleaseKernel(k_calc_outer_source);
+    check_error(err, "Releasing k_calc_outer_source kernel");
 
     // Release program
     err = clReleaseProgram(program);

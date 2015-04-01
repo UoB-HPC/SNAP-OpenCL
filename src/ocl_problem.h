@@ -11,6 +11,7 @@
     int nang;
     int noct;
     int cmom;
+    int nmom;
     int nmat;
 
     int ichunk;

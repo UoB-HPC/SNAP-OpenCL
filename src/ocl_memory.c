@@ -79,6 +79,10 @@ void copy_to_device_(
     double *velocity,
     double *xs,
     int *mat,
+    double *fixed_source,
+    double *gg_cs,
+    int *lma,
+    double *g2g_source,
     double *flux_in)
 {
 
@@ -162,6 +166,21 @@ void copy_to_device_(
 
     d_map = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(int)*nx*ny*nz, mat, &err);
     check_error(err, "Creating map buffer");
+
+    d_fixed_source = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nx*ny*nz*ng, fixed_source, &err);
+    check_error(err, "Creating fixed_source buffer");
+
+    d_gg_cs = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nmom*nx*ny*nz*ng, gg_cs, &err);
+    check_error(err, "Creating gg_cs buffer");
+
+    d_lma = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nmom, lma, &err);
+    check_error(err, "Creating lma buffer");
+
+    d_g2g_source = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*cmom*nx*ny*nz*ng, g2g_source, &err);
+    check_error(err, "Creating g2g_source buffer");
+
+    d_scalar_mom = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*(cmom-1)*nx*ny*nz*ng, NULL, &err);
+    check_error(err, "Creating scalar_mom buffer");
 
     // Reorder the memory layout before copy
     /*

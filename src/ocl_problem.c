@@ -2,7 +2,8 @@
 
 void set_ocl_problem_(
     int *nx_, int *ny_, int *nz_,
-    int *ng_, int *nang_, int *noct_, int *cmom_,
+    int *ng_, int *nang_, int *noct_,
+    int *cmom_, int *nmom_,
     int *ichunk_,
     double *dx_, double *dy_, double *dz_,
     double *dt_,
@@ -17,6 +18,7 @@ void set_ocl_problem_(
     nang = *nang_;
     noct = *noct_;
     cmom = *cmom_;
+    nmom = *nmom_;
     ichunk = *ichunk_;
     dx = *dx_;
     dy = *dy_;
