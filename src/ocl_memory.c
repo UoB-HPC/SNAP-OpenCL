@@ -81,6 +81,7 @@ void copy_to_device_(
     int *mat,
     double *fixed_source,
     double *gg_cs,
+    double *scat_cs,
     int *lma,
     double *g2g_source,
     double *flux_in)
@@ -181,6 +182,9 @@ void copy_to_device_(
 
     d_scalar_mom = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*(cmom-1)*nx*ny*nz*ng, NULL, &err);
     check_error(err, "Creating scalar_mom buffer");
+
+    d_scat_cs = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nmom*nx*ny*nz*ng, scat_cs, &err);
+    check_error(err, "Creating scat_cs buffer");
 
     // Reorder the memory layout before copy
     /*

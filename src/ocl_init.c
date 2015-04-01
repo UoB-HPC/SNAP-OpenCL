@@ -131,6 +131,9 @@ void opencl_setup_(void)
     k_calc_outer_source = clCreateKernel(program, "calc_outer_source", &err);
     check_error(err, "Creating kernel calc_outer_source");
 
+    k_calc_inner_source = clCreateKernel(program, "calc_inner_source", &err);
+    check_error(err, "Creating kernel calc_inner_source");
+
     printf("\nOpenCL environment setup complete\n\n");
 
 }
@@ -230,6 +233,9 @@ void opencl_teardown_(void)
     err = clReleaseMemObject(d_scalar_mom);
     check_error(err, "Releasing d_scalar_mom buffer");
 
+    err = clReleaseMemObject(d_scat_cs);
+    check_error(err, "Releasing d_scat_cs buffer");
+
     for (int i = 0; i < NUM_QUEUES; i++)
     {
         err = clReleaseCommandQueue(queue[i]);
@@ -260,6 +266,9 @@ void opencl_teardown_(void)
 
     err = clReleaseKernel(k_calc_outer_source);
     check_error(err, "Releasing k_calc_outer_source kernel");
+
+    err = clReleaseKernel(k_calc_inner_source);
+    check_error(err, "Releasing k_calc_inner_source kernel");
 
     // Release program
     err = clReleaseProgram(program);

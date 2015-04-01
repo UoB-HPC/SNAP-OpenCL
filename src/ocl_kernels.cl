@@ -34,6 +34,9 @@
 #define lma(m) lma[m]
 #define scalar_mom(m,i,j,k,g) scalar_mom[m+(nmom*i)+(nmom*nx*j)+(nmom*nx*ny+k)+(nmom*nx*ny*nz*g)]
 
+#define scat_cs(m,i,j,k,g) scat_cs[m+(nmom*i)+(nmom*nx*j)+(nmom*nx*ny*k)+(nmom*nx*ny*nz*g)]
+
+
 // Solve the transport equations for a single angle in a single cell for a single group
 __kernel void sweep_cell(
     // Current cell index
@@ -393,6 +396,43 @@ __kernel void calc_outer_source(
                             g2g_source(mom,i,j,k,g1) += gg_cs(map(i,j,k)-1,l,g1,g2) * scalar_mom(mom-1,i,j,k,g2);
                             mom++;
                         }
+                    }
+                }
+            }
+}
+
+// Calculate the inner source
+__kernel void calc_inner_source(
+    const unsigned int nx,
+    const unsigned int ny,
+    const unsigned int nz,
+    const unsigned int ng,
+    const unsigned int nmom,
+    const unsigned int cmom,
+
+    __global const double * restrict g2g_source,
+    __global const double * restrict scat_cs,
+    __global const double * restrict scalar,
+    __global const double * restrict scalar_mom,
+    __global const int * restrict lma,
+
+    __global double * restrict source
+    )
+{
+    const unsigned int g = get_global_id(0);
+
+    for (unsigned int k = 0; k < nz; k++)
+        for (unsigned int j = 0; j < ny; j++)
+            for (unsigned int i = 0; i < nx; i++)
+            {
+                source(0,i,j,k,g) = g2g_source(0,i,j,k,g) + scat_cs(0,i,j,k,g) * scalar(i,j,k,g);
+                unsigned int mom = 1;
+                for (unsigned int l = 1; l < nmom; l++)
+                {
+                    for (unsigned int m = 0; m < lma(l); m++)
+                    {
+                        source(mom,i,j,k,g) = g2g_source(mom,i,j,k,g) + scat_cs(l,i,j,k,g) * scalar_mom(mom-1,i,j,k,g);
+                        mom++;
                     }
                 }
             }

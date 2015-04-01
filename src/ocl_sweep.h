@@ -32,6 +32,7 @@ cl_kernel k_calc_time_delta;
 cl_kernel k_calc_dd_coefficients;
 cl_kernel k_calc_total_cross_section;
 cl_kernel k_calc_outer_source;
+cl_kernel k_calc_inner_source;
 
 // OpenCL buffers
 cl_mem d_source;
@@ -60,6 +61,7 @@ cl_mem d_gg_cs;
 cl_mem d_lma;
 cl_mem d_g2g_source;
 cl_mem d_scalar_mom;
+cl_mem d_scat_cs;
 
 // List of OpenCL events, one for each cell
 // This is used to encourage spacial parallelism by
@@ -101,3 +103,4 @@ static void check_build_error(cl_int err, char *msg)
     check_error(err, msg);
 };
 
+void ocl_sweep_(void);

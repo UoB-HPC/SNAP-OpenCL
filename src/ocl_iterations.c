@@ -212,14 +212,40 @@ void compute_outer_source(void)
 }
 
 
+void compute_inner_source(void)
+{
+    cl_int err;
+    const size_t global[1] = {ng};
+
+    err = clSetKernelArg(k_calc_inner_source, 0, sizeof(unsigned int), &nx);
+    err |= clSetKernelArg(k_calc_inner_source, 1, sizeof(unsigned int), &ny);
+    err |= clSetKernelArg(k_calc_inner_source, 2, sizeof(unsigned int), &nz);
+    err |= clSetKernelArg(k_calc_inner_source, 3, sizeof(unsigned int), &ng);
+    err |= clSetKernelArg(k_calc_inner_source, 4, sizeof(unsigned int), &nmom);
+    err |= clSetKernelArg(k_calc_inner_source, 5, sizeof(unsigned int), &cmom);
+    err |= clSetKernelArg(k_calc_inner_source, 6, sizeof(cl_mem), &d_g2g_source);
+    err |= clSetKernelArg(k_calc_inner_source, 7, sizeof(cl_mem), &d_scat_cs);
+    err |= clSetKernelArg(k_calc_inner_source, 8, sizeof(cl_mem), &d_scalar_flux);
+    err |= clSetKernelArg(k_calc_inner_source, 9, sizeof(cl_mem), &d_scalar_mom);
+    err |= clSetKernelArg(k_calc_inner_source, 10, sizeof(cl_mem), &d_lma);
+    err |= clSetKernelArg(k_calc_inner_source, 11, sizeof(cl_mem), &d_source);
+    check_error(err, "Setting calc_inner_source arguments");
+
+    err = clEnqueueNDRangeKernel(queue[0], k_calc_inner_source, 1, 0, global, NULL, 0, NULL, NULL);
+    check_error(err, "Enqueue calc_inner_source kernel");
+}
+
+
 // Do the timestep, outer and inner iterations
 void ocl_iterations_(void)
 {
     cl_int err;
-    double *old_scalar = malloc(sizeof(double)*nx*ny*nz*ng);
+    double *old_outer_scalar = malloc(sizeof(double)*nx*ny*nz*ng);
+    double *old_inner_scalar = malloc(sizeof(double)*nx*ny*nz*ng);
     // Timestep loop
     for (unsigned int t = 0; t < timesteps; t++)
     {
+        global_timestep = t;
         // Calculate data required at the beginning of each timestep
         expand_cross_section(&d_xs, &d_total_cross_section);
         calc_dd_coefficients();
@@ -232,12 +258,20 @@ void ocl_iterations_(void)
             // Compute the outer source
             compute_outer_source();
             // Save flux
-            err = clEnqueueReadBuffer(queue[0], d_scalar_flux, CL_TRUE, 0, sizeof(double)*nx*ny*nz*ng, old_scalar, 0, NULL, NULL);
-            check_error(err, "Copying scalar flux back to host");
+            err = clEnqueueReadBuffer(queue[0], d_scalar_flux, CL_TRUE, 0, sizeof(double)*nx*ny*nz*ng, old_outer_scalar, 0, NULL, NULL);
+            check_error(err, "Copying outer scalar flux back to host");
             // Inner loop
             for (unsigned int i = 0; i < inners; i++)
             {
-                ;
+                // Compute the inner source
+                compute_inner_source();
+                // Save flux
+                err = clEnqueueReadBuffer(queue[0], d_scalar_flux, CL_TRUE, 0, sizeof(double)*nx*ny*nz*ng, old_inner_scalar, 0, NULL, NULL);
+                check_error(err, "Copying inner scalar flux back to host");
+                // Sweep
+                ocl_sweep_();
+                // Scalar flux
+                // Check convergence
             }
             // Check convergence
 
@@ -245,5 +279,6 @@ void ocl_iterations_(void)
     }
     clFinish(queue[0]);
 
-    free(old_scalar);
+    free(old_outer_scalar);
+    free(old_inner_scalar);
 }
