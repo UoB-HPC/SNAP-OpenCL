@@ -133,7 +133,17 @@ void calc_dd_coefficients(void)
 // Calculate time delta on the device
 void calc_time_delta(void)
 {
-    // Todo
+    cl_int err;
+    const size_t global[1] = {ng};
+
+    err = clSetKernelArg(k_calc_time_delta, 0, sizeof(double), &dt);
+    err |= clSetKernelArg(k_calc_time_delta, 1, sizeof(cl_mem), &d_velocity);
+    err |= clSetKernelArg(k_calc_time_delta, 2, sizeof(cl_mem), &d_time_delta);
+    check_error(err, "Setting calc_time_delta arguments");
+
+    err = clEnqueueNDRangeKernel(queue[0], k_calc_time_delta, 1, 0, global, NULL, 0, NULL, NULL);
+    check_error(err, "Enqueue calc_time_delta kernel");
+
 }
 
 // Do the timestep, outer and inner iterations

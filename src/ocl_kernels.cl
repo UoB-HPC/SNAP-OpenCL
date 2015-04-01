@@ -21,6 +21,8 @@
 #define angular(a,g,i,j,k,o) angular##o[a+(nang*g)+(nang*ng*i)+(nang*ng*nx*j)+(nang*ng*nx*ny*k)]
 #define angular_prev(a,g,i,j,k,o) angular_prev##o[a+(nang*g)+(nang*ng*i)+(nang*ng*nx*j)+(nang*ng*nx*ny*k)]
 
+#define velocity(g) velocity[g]
+
 // Solve the transport equations for a single angle in a single cell for a single group
 __kernel void sweep_cell(
     // Current cell index
@@ -281,5 +283,16 @@ __kernel void calc_denominator(
             }
         }
     }
+}
+
+// Calculate the time delta
+__kernel void calc_time_delta(
+    const double dt,
+    __global const double * restrict velocity,
+    __global double * restrict time_delta
+    )
+{
+    const unsigned int g = get_global_id(0);
+    time_delta(g) = 2.0 / (dt * velocity(g));
 }
 

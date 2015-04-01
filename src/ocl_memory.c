@@ -75,6 +75,7 @@ void copy_to_device_(
     double *mu, double *scat_coef,
     double *total_cross_section,
     double *weights,
+    double *velocity,
     double *flux_in)
 {
 
@@ -170,8 +171,11 @@ void copy_to_device_(
     d_source = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*cmom*nx*ny*nz*ng, NULL, &err);
     check_error(err, "Creating source buffer");
 
-    d_time_delta = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*ng, NULL, &err);
+    d_time_delta = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*ng, NULL, &err);
     check_error(err, "Creating time_delta buffer");
+
+    d_velocity = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*ng, velocity, &err);
+    check_error(err, "Creating velocity buffer");
 
     d_scalar_flux = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nx*ny*nz*ng, NULL, &err);
     check_error(err, "Creating scalar_flux buffer");

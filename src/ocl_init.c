@@ -119,6 +119,9 @@ void opencl_setup_(void)
     k_calc_denominator = clCreateKernel(program, "calc_denominator", &err);
     check_error(err, "Creating kernel calc_denominator");
 
+    k_calc_time_delta = clCreateKernel(program, "calc_time_delta", &err);
+    check_error(err, "Creating kernel calc_time_delta");
+
     printf("\nOpenCL environment setup complete\n\n");
 
 }
@@ -185,6 +188,9 @@ void opencl_teardown_(void)
     err = clReleaseMemObject(d_weights);
     check_error(err, "Releasing d_weights buffer");
 
+    err = clReleaseMemObject(d_velocity);
+    check_error(err, "Releasing d_velocity buffer");
+
     err = clReleaseMemObject(d_scalar_flux);
     check_error(err, "Releasing d_scalar_flux buffer");
 
@@ -207,6 +213,9 @@ void opencl_teardown_(void)
 
     err = clReleaseKernel(k_calc_denominator);
     check_error(err, "Releasing k_calc_denominator kernel");
+
+    err = clReleaseKernel(k_calc_time_delta);
+    check_error(err, "Releasing k_calc_time_delta kernel");
 
     // Release program
     err = clReleaseProgram(program);

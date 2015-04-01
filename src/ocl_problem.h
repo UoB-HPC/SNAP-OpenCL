@@ -14,5 +14,7 @@
     int ichunk;
     int timesteps;
 
+    double dt;
+
     int outers;
     int inners;
