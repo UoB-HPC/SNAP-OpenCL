@@ -12,6 +12,8 @@
 #define dd_j(a) dd_j[a]
 #define dd_k(a) dd_k[a]
 #define mu(a) mu[a]
+#define eta(a) eta[a]
+#define xi(a) xi[a]
 #define scat_coef(a,m,o) scat_coef[a+(nang*m)+(nang*cmom*o)]
 #define time_delta(g) time_delta[g]
 #define total_cross_section(g,i,j,k) total_cross_section[g+(ng*i)+(ng*nx*j)+(ng*nx*ny*k)]
@@ -296,3 +298,21 @@ __kernel void calc_time_delta(
     time_delta(g) = 2.0 / (dt * velocity(g));
 }
 
+
+// Calculate the diamond difference coefficients
+__kernel void calc_dd_coefficients(
+    const double dy,
+    const double dz,
+
+    __global const double * restrict eta,
+    __global const double * restrict xi,
+
+    __global double * restrict dd_j,
+    __global double * restrict dd_k
+    )
+{
+    const unsigned int a = get_global_id(0);
+    dd_j(a) = (2.0/dy)*eta(a);
+    dd_k(a) = (2.0/dz)*xi(a);
+
+}

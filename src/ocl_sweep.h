@@ -29,6 +29,7 @@ cl_kernel k_reduce_angular;
 
 cl_kernel k_calc_denominator;
 cl_kernel k_calc_time_delta;
+cl_kernel k_calc_dd_coefficients;
 
 // OpenCL buffers
 cl_mem d_source;
@@ -42,6 +43,8 @@ double d_dd_i;
 cl_mem d_dd_j;
 cl_mem d_dd_k;
 cl_mem d_mu;
+cl_mem d_eta;
+cl_mem d_xi;
 cl_mem d_scat_coeff;
 cl_mem d_time_delta;
 cl_mem d_total_cross_section;

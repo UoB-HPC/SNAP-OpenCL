@@ -72,7 +72,8 @@ void check_device_memory(void)
 // denom(nang,nx,ny,nz,ng) - Sweep denominator, pre-computed/inverted
 // weights(nang) - angle weights for scalar reduction
 void copy_to_device_(
-    double *mu, double *scat_coef,
+    double *mu, double *eta, double *xi,
+    double *scat_coef,
     double *total_cross_section,
     double *weights,
     double *velocity,
@@ -128,16 +129,22 @@ void copy_to_device_(
 
     zero_edge_flux_buffers_();
 
-    d_dd_j = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang, NULL, &err);
+    d_dd_j = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nang, NULL, &err);
     check_error(err, "Creating dd_j buffer");
 
-    d_dd_k = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang, NULL, &err);
+    d_dd_k = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nang, NULL, &err);
     check_error(err, "Creating dd_k buffer");
 
     d_mu = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang, NULL, &err);
     check_error(err, "Creating mu buffer");
     err = clEnqueueWriteBuffer(queue[0], d_mu, CL_FALSE, 0, sizeof(double)*nang, mu, 0, NULL, NULL);
     check_error(err, "Copying mu buffer");
+
+    d_eta = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang, eta, &err);
+    check_error(err, "Creating eta buffer");
+
+    d_xi = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nang, xi, &err);
+    check_error(err, "Creating xi buffer");
 
     d_scat_coeff = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang*cmom*noct, NULL, &err);
     check_error(err, "Creating scat_coef buffer");

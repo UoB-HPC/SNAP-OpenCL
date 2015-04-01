@@ -122,6 +122,9 @@ void opencl_setup_(void)
     k_calc_time_delta = clCreateKernel(program, "calc_time_delta", &err);
     check_error(err, "Creating kernel calc_time_delta");
 
+    k_calc_dd_coefficients = clCreateKernel(program, "calc_dd_coefficients", &err);
+    check_error(err, "Creating kernel calc_dd_coefficients");
+
     printf("\nOpenCL environment setup complete\n\n");
 
 }
@@ -176,6 +179,12 @@ void opencl_teardown_(void)
     err = clReleaseMemObject(d_mu);
     check_error(err, "Releasing d_mu buffer");
 
+    err = clReleaseMemObject(d_eta);
+    check_error(err, "Releasing d_eta buffer");
+
+    err = clReleaseMemObject(d_xi);
+    check_error(err, "Releasing d_xi buffer");
+
     err = clReleaseMemObject(d_scat_coeff);
     check_error(err, "Releasing d_scat_coeff buffer");
 
@@ -216,6 +225,9 @@ void opencl_teardown_(void)
 
     err = clReleaseKernel(k_calc_time_delta);
     check_error(err, "Releasing k_calc_time_delta kernel");
+
+    err = clReleaseKernel(k_calc_dd_coefficients);
+    check_error(err, "Releasing k_calc_dd_coefficients kernel");
 
     // Release program
     err = clReleaseProgram(program);

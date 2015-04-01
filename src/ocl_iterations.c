@@ -127,7 +127,20 @@ void calc_denom(void)
 // Calculate diamond difference on the device
 void calc_dd_coefficients(void)
 {
-    // Todo
+    cl_int err;
+    d_dd_i = 2.0 / dx;
+
+    const size_t global[1] = {nang};
+    err = clSetKernelArg(k_calc_dd_coefficients, 0, sizeof(double), &dy);
+    err |= clSetKernelArg(k_calc_dd_coefficients, 1, sizeof(double), &dz);
+    err |= clSetKernelArg(k_calc_dd_coefficients, 2, sizeof(cl_mem), &d_eta);
+    err |= clSetKernelArg(k_calc_dd_coefficients, 3, sizeof(cl_mem), &d_xi);
+    err |= clSetKernelArg(k_calc_dd_coefficients, 4, sizeof(cl_mem), &d_dd_j);
+    err |= clSetKernelArg(k_calc_dd_coefficients, 5, sizeof(cl_mem), &d_dd_k);
+    check_error(err, "Setting calc_dd_coefficients arguments");
+
+    err = clEnqueueNDRangeKernel(queue[0], k_calc_dd_coefficients, 1, 0, global, NULL, 0, NULL, NULL);
+    check_error(err, "Enqueue calc_dd_coefficients kernel");
 }
 
 // Calculate time delta on the device

@@ -13,7 +13,7 @@ SUBROUTINE translv
     ichunk, do_nested
 
   USE geom_module, ONLY: geom_alloc, geom_dealloc, dinv, param_calc,   &
-    nx, ny_gl, nz_gl, diag_setup, hi, hj, hk
+    nx, ny_gl, nz_gl, diag_setup, hi, hj, hk, dx, dy, dz
 
   USE sn_module, ONLY: nang, noct, mu, eta, xi, cmom, ec, w
 
@@ -120,8 +120,8 @@ SUBROUTINE translv
 
   CALL wtime ( ocl_first_copy_tic )
 
-  CALL set_ocl_problem ( nx, ny_gl, nz_gl, ng, nang, noct, cmom, ichunk, dt, nsteps, oitm, iitm )
-  CALL copy_to_device ( mu, ec, t_xs, w, v, ptr_in )
+  CALL set_ocl_problem ( nx, ny_gl, nz_gl, ng, nang, noct, cmom, ichunk, dx, dy, dz, dt, nsteps, oitm, iitm )
+  CALL copy_to_device ( mu, eta, xi, ec, t_xs, w, v, ptr_in )
 
   CALL wtime ( ocl_first_copy_toc )
 
@@ -236,7 +236,7 @@ SUBROUTINE translv
 
       CALL wtime ( ocl_update_tic )
       !CALL copy_denom_to_device ( dinv )
-      CALL copy_dd_coefficients_to_device ( hi, hj, hk )
+      !CALL copy_dd_coefficients_to_device ( hi, hj, hk )
       !CALL copy_time_delta_to_device ( vdelt )
       CALL copy_total_cross_section_to_device ( t_xs )
       CALL wtime ( ocl_update_toc )

@@ -15,6 +15,9 @@
     int timesteps;
 
     double dt;
+    double dx;
+    double dy;
+    double dz;
 
     int outers;
     int inners;
