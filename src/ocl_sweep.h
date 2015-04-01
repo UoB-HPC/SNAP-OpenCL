@@ -27,6 +27,8 @@ cl_program program;
 cl_kernel k_sweep_cell[NUM_QUEUES];
 cl_kernel k_reduce_angular;
 
+cl_kernel k_calc_denominator;
+
 // OpenCL buffers
 cl_mem d_source;
 cl_mem *d_flux_in;

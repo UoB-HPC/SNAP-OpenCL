@@ -164,7 +164,7 @@ void copy_to_device_(
     check_error(err, "Copying weights buffer");
 
     // Create buffers written to later
-    d_denom = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang*nx*ny*nz*ng, NULL, &err);
+    d_denom = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nang*nx*ny*nz*ng, NULL, &err);
     check_error(err, "Creating denom buffer");
 
     d_source = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*cmom*nx*ny*nz*ng, NULL, &err);

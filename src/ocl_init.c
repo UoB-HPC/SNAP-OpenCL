@@ -116,6 +116,9 @@ void opencl_setup_(void)
     k_reduce_angular = clCreateKernel(program, "reduce_angular", &err);
     check_error(err, "Creating kernel reduce_angular");
 
+    k_calc_denominator = clCreateKernel(program, "calc_denominator", &err);
+    check_error(err, "Creating kernel calc_denominator");
+
     printf("\nOpenCL environment setup complete\n\n");
 
 }
@@ -201,6 +204,9 @@ void opencl_teardown_(void)
 
     err = clReleaseKernel(k_reduce_angular);
     check_error(err, "Releasing k_reduce_angular kernel");
+
+    err = clReleaseKernel(k_calc_denominator);
+    check_error(err, "Releasing k_calc_denominator kernel");
 
     // Release program
     err = clReleaseProgram(program);

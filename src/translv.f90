@@ -127,6 +127,12 @@ SUBROUTINE translv
 
   WRITE ( *, 212 ) ( ocl_first_copy_toc-ocl_first_copy_tic )
 
+!_______________________________________________________________________
+!
+!   Run the iteration loops on OpenCL device
+!_______________________________________________________________________
+
+  !CALL ocl_iterations
 
 !_______________________________________________________________________
 !
@@ -229,10 +235,13 @@ SUBROUTINE translv
 !_______________________________________________________________________
 
       CALL wtime ( ocl_update_tic )
-      CALL copy_denom_to_device ( dinv )
+      !CALL copy_denom_to_device ( dinv )
       CALL copy_dd_coefficients_to_device ( hi, hj, hk )
       CALL copy_time_delta_to_device ( vdelt )
+      CALL copy_total_cross_section_to_device ( t_xs )
       CALL wtime ( ocl_update_toc )
+      CALL ocl_iterations
+
       ocl_copy_time = ocl_copy_time + ocl_update_toc - ocl_update_tic
 
 !_______________________________________________________________________

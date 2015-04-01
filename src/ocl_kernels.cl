@@ -249,3 +249,37 @@ __kernel void reduce_angular(
     }
 }
 
+
+// Calculate the inverted denominator for all the energy groups
+__kernel void calc_denominator(
+    const unsigned int nx,
+    const unsigned int ny,
+    const unsigned int nz,
+    const unsigned int nang,
+    const unsigned int ng,
+
+    __global const double * restrict total_cross_section,
+    __global const double * restrict time_delta,
+    __global const double * restrict mu,
+    const double dd_i,
+    __global const double * restrict dd_j,
+    __global const double * restrict dd_k,
+
+    __global double * restrict denom
+    )
+{
+    const unsigned int a_idx = get_global_id(0);
+    const unsigned int g_idx = get_global_id(1);
+
+    for (unsigned int k = 0; k < nz; k++)
+    {
+        for (unsigned int j = 0; j < ny; j++)
+        {
+            for (unsigned int i = 0; i < nx; i++)
+            {
+                denom(a_idx,g_idx,i,j,k) = 1.0 / (total_cross_section(g_idx,i,j,k) + time_delta(g_idx) + mu(a_idx)*dd_i + dd_j(a_idx) + dd_k(a_idx));
+            }
+        }
+    }
+}
+
