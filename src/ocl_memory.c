@@ -77,6 +77,8 @@ void copy_to_device_(
     double *total_cross_section,
     double *weights,
     double *velocity,
+    double *xs,
+    int *mat,
     double *flux_in)
 {
 
@@ -152,10 +154,17 @@ void copy_to_device_(
     check_error(err, "Copying scat_coef buffer");
 
 
-    d_total_cross_section = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nx*ny*nz*ng, NULL, &err);
+    d_total_cross_section = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nx*ny*nz*ng, NULL, &err);
     check_error(err, "Creating total_cross_section buffer");
 
+    d_xs = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(double)*nmat*ng, xs, &err);
+    check_error(err, "Creating xs buffer");
+
+    d_map = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(int)*nx*ny*nz, mat, &err);
+    check_error(err, "Creating map buffer");
+
     // Reorder the memory layout before copy
+    /*
     double *tmp = (double *)malloc(sizeof(double)*nx*ny*nz*ng);
     for (unsigned int i = 0; i < nx; i++)
         for (unsigned int j = 0; j < ny; j++)
@@ -165,6 +174,7 @@ void copy_to_device_(
     err = clEnqueueWriteBuffer(queue[0], d_total_cross_section, CL_TRUE, 0, sizeof(double)*nx*ny*nz*ng, tmp, 0, NULL, NULL);
     check_error(err, "Copying total_cross_section buffer");
     free(tmp);
+    */
 
     d_weights = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*nang, NULL, &err);
     check_error(err, "Creating weights buffer");

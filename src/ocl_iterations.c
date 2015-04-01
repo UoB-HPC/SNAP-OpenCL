@@ -159,12 +159,33 @@ void calc_time_delta(void)
 
 }
 
+// Calculate the total cross section on the device
+void calc_total_cross_section(void)
+{
+    cl_int err;
+    const size_t global[1] = {ng};
+
+    err = clSetKernelArg(k_calc_total_cross_section, 0, sizeof(unsigned int), &nx);
+    err |= clSetKernelArg(k_calc_total_cross_section, 1, sizeof(unsigned int), &ny);
+    err |= clSetKernelArg(k_calc_total_cross_section, 2, sizeof(unsigned int), &nz);
+    err |= clSetKernelArg(k_calc_total_cross_section, 3, sizeof(unsigned int), &ng);
+    err |= clSetKernelArg(k_calc_total_cross_section, 4, sizeof(unsigned int), &nmat);
+    err |= clSetKernelArg(k_calc_total_cross_section, 5, sizeof(cl_mem), &d_xs);
+    err |= clSetKernelArg(k_calc_total_cross_section, 6, sizeof(cl_mem), &d_map);
+    err |= clSetKernelArg(k_calc_total_cross_section, 7, sizeof(cl_mem), &d_total_cross_section);
+    check_error(err, "Setting calc_total_cross_section arguments");
+
+    err = clEnqueueNDRangeKernel(queue[0], k_calc_total_cross_section, 1, 0, global, NULL, 0, NULL, NULL);
+    check_error(err, "Enqueue calc_total_cross_section kernel");
+}
+
 // Do the timestep, outer and inner iterations
 void ocl_iterations_(void)
 {
     // Timestep loop
     for (unsigned int t = 0; t < timesteps; t++)
     {
+        calc_total_cross_section();
         calc_dd_coefficients();
         calc_time_delta();
         calc_denom();

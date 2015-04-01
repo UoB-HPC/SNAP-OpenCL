@@ -25,6 +25,9 @@
 
 #define velocity(g) velocity[g]
 
+#define map(i,j,k) map[i+(nx*j)+(nx*ny*k)]
+#define xs(i,g) xs[i+(nmat*g)]
+
 // Solve the transport equations for a single angle in a single cell for a single group
 __kernel void sweep_cell(
     // Current cell index
@@ -315,4 +318,29 @@ __kernel void calc_dd_coefficients(
     dd_j(a) = (2.0/dy)*eta(a);
     dd_k(a) = (2.0/dz)*xi(a);
 
+}
+
+// Calculate the total cross section from the spatial mapping
+__kernel void calc_total_cross_section(
+    const unsigned int nx,
+    const unsigned int ny,
+    const unsigned int nz,
+    const unsigned int ng,
+    const unsigned int nmat,
+    __global const double * restrict xs,
+    __global const unsigned int * restrict map,
+    __global double * restrict total_cross_section
+    )
+{
+    const unsigned int g = get_global_id(0);
+    for (unsigned int k = 0; k < nz; k++)
+    {
+        for (unsigned int j = 0; j < ny; j++)
+        {
+            for (unsigned int i = 0; i < nx; i++)
+            {
+                total_cross_section(g,i,j,k) = xs(map(i,j,k)-1,g);
+            }
+        }
+    }
 }

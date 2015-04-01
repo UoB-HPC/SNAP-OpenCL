@@ -6,6 +6,7 @@ void set_ocl_problem_(
     int *ichunk_,
     double *dx_, double *dy_, double *dz_,
     double *dt_,
+    int *nmat_,
     int *timesteps_, int *outers_, int *inners_)
 {
     // Save problem size information to globals
@@ -21,6 +22,7 @@ void set_ocl_problem_(
     dy = *dy_;
     dz = *dz_;
     dt = *dt_;
+    nmat = *nmat_;
     timesteps = *timesteps_;
     outers = *outers_;
     inners = *inners_;

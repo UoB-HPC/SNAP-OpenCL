@@ -30,6 +30,7 @@ cl_kernel k_reduce_angular;
 cl_kernel k_calc_denominator;
 cl_kernel k_calc_time_delta;
 cl_kernel k_calc_dd_coefficients;
+cl_kernel k_calc_total_cross_section;
 
 // OpenCL buffers
 cl_mem d_source;
@@ -51,6 +52,8 @@ cl_mem d_total_cross_section;
 cl_mem d_weights;
 cl_mem d_velocity;
 cl_mem d_scalar_flux;
+cl_mem d_xs;
+cl_mem d_map;
 
 
 // List of OpenCL events, one for each cell

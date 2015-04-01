@@ -11,6 +11,8 @@
     int nang;
     int noct;
     int cmom;
+    int nmat;
+
     int ichunk;
     int timesteps;
 

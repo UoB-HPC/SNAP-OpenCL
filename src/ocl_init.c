@@ -125,6 +125,9 @@ void opencl_setup_(void)
     k_calc_dd_coefficients = clCreateKernel(program, "calc_dd_coefficients", &err);
     check_error(err, "Creating kernel calc_dd_coefficients");
 
+    k_calc_total_cross_section = clCreateKernel(program, "calc_total_cross_section", &err);
+    check_error(err, "Creating kernel calc_total_cross_section");
+
     printf("\nOpenCL environment setup complete\n\n");
 
 }
@@ -203,6 +206,11 @@ void opencl_teardown_(void)
     err = clReleaseMemObject(d_scalar_flux);
     check_error(err, "Releasing d_scalar_flux buffer");
 
+    err = clReleaseMemObject(d_xs);
+    check_error(err, "Releasing d_xs buffer");
+
+    err = clReleaseMemObject(d_map);
+    check_error(err, "Releasing d_map buffer");
 
     for (int i = 0; i < NUM_QUEUES; i++)
     {
@@ -228,6 +236,9 @@ void opencl_teardown_(void)
 
     err = clReleaseKernel(k_calc_dd_coefficients);
     check_error(err, "Releasing k_calc_dd_coefficients kernel");
+
+    err = clReleaseKernel(k_calc_total_cross_section);
+    check_error(err, "Releasing k_calc_total_cross_section kernel");
 
     // Release program
     err = clReleaseProgram(program);
