@@ -396,7 +396,5 @@ __kernel void calc_outer_source(
                     }
                 }
             }
-    if (g1 == 0)
-        printf("%lf\n", g2g_source(1,nx-1,ny-1,nz-1,ng-1));
 }
 

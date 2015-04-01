@@ -215,6 +215,8 @@ void compute_outer_source(void)
 // Do the timestep, outer and inner iterations
 void ocl_iterations_(void)
 {
+    cl_int err;
+    double *old_scalar = malloc(sizeof(double)*nx*ny*nz*ng);
     // Timestep loop
     for (unsigned int t = 0; t < timesteps; t++)
     {
@@ -230,7 +232,8 @@ void ocl_iterations_(void)
             // Compute the outer source
             compute_outer_source();
             // Save flux
-
+            err = clEnqueueReadBuffer(queue[0], d_scalar_flux, CL_TRUE, 0, sizeof(double)*nx*ny*nz*ng, old_scalar, 0, NULL, NULL);
+            check_error(err, "Copying scalar flux back to host");
             // Inner loop
             for (unsigned int i = 0; i < inners; i++)
             {
@@ -242,4 +245,5 @@ void ocl_iterations_(void)
     }
     clFinish(queue[0]);
 
+    free(old_scalar);
 }
