@@ -103,6 +103,15 @@ void zero_flux_moments_buffer(void)
     free(zero);
 }
 
+void zero_scalar_flux(void)
+{
+    cl_int err;
+    double *zero = calloc(sizeof(double),nx*ny*nz*ng);
+    err = clEnqueueWriteBuffer(queue[0], d_scalar_flux, CL_TRUE, 0, sizeof(double)*nx*ny*nz*ng, zero, 0, NULL, NULL);
+    check_error(err, "Zeroing scalar_flux buffer");
+    free(zero);
+}
+
 // Calculate denominator on the device
 void calc_denom(void)
 {

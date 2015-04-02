@@ -4,6 +4,7 @@
 // Forward declare to zero buffer functions
 extern void zero_edge_flux_buffers_(void);
 extern void zero_centre_flux_in_buffer_(void);
+extern void zero_scalar_flux(void);
 
 // Check the devices available memory to check everything will fit in the device
 void check_device_memory(void)
@@ -219,6 +220,7 @@ void copy_to_device_(
 
     d_scalar_flux = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nx*ny*nz*ng, NULL, &err);
     check_error(err, "Creating scalar_flux buffer");
+    zero_scalar_flux();
 
     // Wait for the data to be on the device before returning
     err = clFinish(queue[0]);
