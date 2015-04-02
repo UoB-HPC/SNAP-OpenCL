@@ -28,7 +28,7 @@
 #define map(i,j,k) map[i+(nx*j)+(nx*ny*k)]
 #define xs(i,g) xs[i+(nmat*g)]
 
-#define g2g_source(m,i,j,k,g) g2g_source[m+(nmom*i)+(nmom*nx*j)+(nmom*nx*ny*k)+(nmom*nx*ny*nz*g)]
+#define g2g_source(m,i,j,k,g) g2g_source[m+(cmom*i)+(cmom*nx*j)+(cmom*nx*ny*k)+(cmom*nx*ny*nz*g)]
 #define fixed_source(i,j,k,g) fixed_source[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)]
 #define gg_cs(m,l,g1,g2) gg_cs[m+(nmat*l)+(nmat*nmom*g1)+(nmat*nmom*ng*g2)]
 #define lma(m) lma[m]
@@ -361,6 +361,7 @@ __kernel void calc_outer_source(
     const unsigned int nz,
     const unsigned int ng,
     const unsigned int nmom,
+    const unsigned int cmom,
     const unsigned int nmat,
 
     __global const int * restrict map,

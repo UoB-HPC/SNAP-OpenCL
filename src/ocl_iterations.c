@@ -206,14 +206,15 @@ void compute_outer_source(void)
     err |= clSetKernelArg(k_calc_outer_source, 2, sizeof(unsigned int), &nz);
     err |= clSetKernelArg(k_calc_outer_source, 3, sizeof(unsigned int), &ng);
     err |= clSetKernelArg(k_calc_outer_source, 4, sizeof(unsigned int), &nmom);
-    err |= clSetKernelArg(k_calc_outer_source, 5, sizeof(unsigned int), &nmat);
-    err |= clSetKernelArg(k_calc_outer_source, 6, sizeof(cl_mem), &d_map);
-    err |= clSetKernelArg(k_calc_outer_source, 7, sizeof(cl_mem), &d_gg_cs);
-    err |= clSetKernelArg(k_calc_outer_source, 8, sizeof(cl_mem), &d_fixed_source);
-    err |= clSetKernelArg(k_calc_outer_source, 9, sizeof(cl_mem), &d_lma);
-    err |= clSetKernelArg(k_calc_outer_source, 10, sizeof(cl_mem), &d_scalar_flux);
-    err |= clSetKernelArg(k_calc_outer_source, 11, sizeof(cl_mem), &d_scalar_mom);
-    err |= clSetKernelArg(k_calc_outer_source, 12, sizeof(cl_mem), &d_g2g_source);
+    err |= clSetKernelArg(k_calc_outer_source, 5, sizeof(unsigned int), &cmom);
+    err |= clSetKernelArg(k_calc_outer_source, 6, sizeof(unsigned int), &nmat);
+    err |= clSetKernelArg(k_calc_outer_source, 7, sizeof(cl_mem), &d_map);
+    err |= clSetKernelArg(k_calc_outer_source, 8, sizeof(cl_mem), &d_gg_cs);
+    err |= clSetKernelArg(k_calc_outer_source, 9, sizeof(cl_mem), &d_fixed_source);
+    err |= clSetKernelArg(k_calc_outer_source, 10, sizeof(cl_mem), &d_lma);
+    err |= clSetKernelArg(k_calc_outer_source, 11, sizeof(cl_mem), &d_scalar_flux);
+    err |= clSetKernelArg(k_calc_outer_source, 12, sizeof(cl_mem), &d_scalar_mom);
+    err |= clSetKernelArg(k_calc_outer_source, 13, sizeof(cl_mem), &d_g2g_source);
     check_error(err, "Setting calc_outer_source arguments");
 
     err = clEnqueueNDRangeKernel(queue[0], k_calc_outer_source, 1, 0, global, NULL, 0, NULL, NULL);
