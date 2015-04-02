@@ -178,7 +178,7 @@ void copy_to_device_(
     d_lma = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nmom, lma, &err);
     check_error(err, "Creating lma buffer");
 
-    d_g2g_source = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*cmom*nx*ny*nz*ng, g2g_source, &err);
+    d_g2g_source = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(double)*cmom*nx*ny*nz*ng, g2g_source, &err);
     check_error(err, "Creating g2g_source buffer");
 
     d_scalar_mom = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*(cmom-1)*nx*ny*nz*ng, NULL, &err);
@@ -209,7 +209,7 @@ void copy_to_device_(
     d_denom = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nang*nx*ny*nz*ng, NULL, &err);
     check_error(err, "Creating denom buffer");
 
-    d_source = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(double)*cmom*nx*ny*nz*ng, NULL, &err);
+    d_source = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*cmom*nx*ny*nz*ng, NULL, &err);
     check_error(err, "Creating source buffer");
 
     d_time_delta = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*ng, NULL, &err);
