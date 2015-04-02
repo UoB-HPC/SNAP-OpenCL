@@ -53,8 +53,6 @@ void check_device_memory(void)
         fprintf(stderr, "Available %.1f GB.\n", (double)global_memory/(1024.0*1024.0*1024.0));
         exit(-1);
     }
-
-
 }
 
 // Create buffers and copy the flux, source and
@@ -167,8 +165,10 @@ void copy_to_device_(
     d_xs = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(double)*nmat*ng, xs, &err);
     check_error(err, "Creating xs buffer");
 
-    d_map = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(int)*nx*ny*nz, mat, &err);
+    d_map = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(int)*nx*ny*nz, NULL, &err);
     check_error(err, "Creating map buffer");
+    err = clEnqueueWriteBuffer(queue[0], d_map, CL_TRUE, 0, sizeof(int)*nx*ny*nz, mat, 0, NULL, NULL);
+    check_error(err, "Copying mat buffer");
 
     d_fixed_source = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nx*ny*nz*ng, fixed_source, &err);
     check_error(err, "Creating fixed_source buffer");
