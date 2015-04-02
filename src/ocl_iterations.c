@@ -281,6 +281,7 @@ void ocl_iterations_(void)
                 // Sweep
                 ocl_sweep_();
                 // Scalar flux
+                ocl_scalar_flux_();
                 // Check convergence
             }
             // Check convergence

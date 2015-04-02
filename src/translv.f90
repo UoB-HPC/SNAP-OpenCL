@@ -149,7 +149,7 @@ SUBROUTINE translv
   time_loop: DO cy = 1, nsteps
 
     ! Set the timestep for the OpenCL calls
-    CALL ocl_set_timestep ( cy )
+    !CALL ocl_set_timestep ( cy )
 
     CALL wtime ( t3 )
 
@@ -246,37 +246,6 @@ SUBROUTINE translv
       IF ( otrdone ) EXIT outer_loop
 
     END DO outer_loop
-
-!_______________________________________________________________________
-!
-!   Check that the OpenCL sweep of the octant matches the original
-!_______________________________________________________________________
-
-  CALL get_output_flux ( ocl_angular_flux )
-
-  DO o = 1, noct
-    IF ( ALL ( ABS ( ocl_angular_flux(:,:,:,:,o,:) - ptr_out(:,:,:,:,o,:) ) < 1.0E-13_r_knd ) ) THEN
-      PRINT *, "Octant", o, "matched"
-    ELSE
-      PRINT *, "Octant", o, "did NOT match"
-      PRINT *, "Biggest error:", MAXVAL ( ABS ( ocl_angular_flux(:,:,:,:,o,:) - ptr_out(:,:,:,:,o,:) ) )
-    END IF
-  END DO
-
-!_______________________________________________________________________
-!
-!   Compute the Scalar Flux from the angular flux using OpenCL
-!_______________________________________________________________________
-
-  CALL ocl_scalar_flux
-  CALL get_scalar_flux( scalar_flux )
-
-  IF ( ALL ( ABS ( scalar_flux - flux ) < 1.0E-13_r_knd ) ) THEN
-    PRINT *, "Scalar flux matched"
-  ELSE
-    PRINT *, "Scalar flux did not match"
-  END IF
-
 !_______________________________________________________________________
 !
 !   Print the time cycle details. Add time cycle iterations.
@@ -313,6 +282,35 @@ SUBROUTINE translv
         * REAL( nang, r_knd ) * REAL( noct, r_knd )                    &
         * REAL( tot_iits, r_knd )
   tgrind = tslv*1.0E9_r_knd / tmp
+
+!_______________________________________________________________________
+!
+!   Check that the OpenCL sweep of the octant matches the original
+!_______________________________________________________________________
+
+  CALL get_output_flux ( ocl_angular_flux )
+
+  DO o = 1, noct
+    IF ( ALL ( ABS ( ocl_angular_flux(:,:,:,:,o,:) - ptr_out(:,:,:,:,o,:) ) < 1.0E-13_r_knd ) ) THEN
+      PRINT *, "Octant", o, "matched"
+    ELSE
+      PRINT *, "Octant", o, "did NOT match"
+      PRINT *, "Biggest error:", MAXVAL ( ABS ( ocl_angular_flux(:,:,:,:,o,:) - ptr_out(:,:,:,:,o,:) ) )
+    END IF
+  END DO
+
+!_______________________________________________________________________
+!
+!   Compute the Scalar Flux from the angular flux using OpenCL
+!_______________________________________________________________________
+
+  CALL get_scalar_flux( scalar_flux )
+
+  IF ( ALL ( ABS ( scalar_flux - flux ) < 1.0E-13_r_knd ) ) THEN
+    PRINT *, "Scalar flux matched"
+  ELSE
+    PRINT *, "Scalar flux did not match"
+  END IF
 
 
   DEALLOCATE ( ocl_angular_flux )
