@@ -32,7 +32,7 @@
 #define fixed_source(i,j,k,g) fixed_source[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)]
 #define gg_cs(m,l,g1,g2) gg_cs[m+(nmat*l)+(nmat*nmom*g1)+(nmat*nmom*ng*g2)]
 #define lma(m) lma[m]
-#define scalar_mom(m,i,j,k,g) scalar_mom[m+(nmom*i)+(nmom*nx*j)+(nmom*nx*ny+k)+(nmom*nx*ny*nz*g)]
+#define scalar_mom(m,i,j,k,g) scalar_mom[m+((cmom-1)*i)+((cmom-1)*nx*j)+((cmom-1)*nx*ny*k)+((cmom-1)*nx*ny*nz*g)]
 
 #define scat_cs(m,i,j,k,g) scat_cs[m+(nmom*i)+(nmom*nx*j)+(nmom*nx*ny*k)+(nmom*nx*ny*nz*g)]
 
