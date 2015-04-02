@@ -1,5 +1,7 @@
 #include "ocl_problem.h"
 
+#include <stdio.h>
+
 void set_ocl_problem_(
     int *nx_, int *ny_, int *nz_,
     int *ng_, int *nang_, int *noct_,
@@ -28,4 +30,7 @@ void set_ocl_problem_(
     timesteps = *timesteps_;
     outers = *outers_;
     inners = *inners_;
+
+    if (nx != ichunk)
+        printf("Warning: nx and ichunk are different - expect the answers to be wrong...\n");
 }
