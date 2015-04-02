@@ -266,14 +266,15 @@ void ocl_iterations_(void)
     {
         global_timestep = t;
         // Calculate data required at the beginning of each timestep
-        expand_cross_section(&d_xs, &d_total_cross_section);
-        calc_dd_coefficients();
-        calc_time_delta();
-        calc_denom();
+        zero_scalar_flux();
         zero_flux_moments_buffer();
         // Outer loop
         for (unsigned int o = 0; o < outers; o++)
         {
+            expand_cross_section(&d_xs, &d_total_cross_section);
+            calc_dd_coefficients();
+            calc_time_delta();
+            calc_denom();
             // Compute the outer source
             compute_outer_source();
             // Save flux
