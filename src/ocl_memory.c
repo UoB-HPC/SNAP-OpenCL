@@ -5,6 +5,7 @@
 extern void zero_edge_flux_buffers_(void);
 extern void zero_centre_flux_in_buffer_(void);
 extern void zero_scalar_flux(void);
+extern void zero_scalar_moments(void);
 
 // Check the devices available memory to check everything will fit in the device
 void check_device_memory(void)
@@ -183,6 +184,7 @@ void copy_to_device_(
 
     d_scalar_mom = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*(cmom-1)*nx*ny*nz*ng, NULL, &err);
     check_error(err, "Creating scalar_mom buffer");
+    zero_scalar_moments();
 
     d_scat_cs = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nmom*nx*ny*nz*ng, scat_cs, &err);
     check_error(err, "Creating scat_cs buffer");
