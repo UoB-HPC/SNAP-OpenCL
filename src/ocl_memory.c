@@ -182,7 +182,10 @@ void copy_to_device_(
     d_g2g_source = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(double)*cmom*nx*ny*nz*ng, g2g_source, &err);
     check_error(err, "Creating g2g_source buffer");
 
-    d_scalar_mom = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*(cmom-1)*nx*ny*nz*ng, NULL, &err);
+    if (cmom == 1)
+        d_scalar_mom = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*nx*ny*nz*ng, NULL, &err);
+    else
+        d_scalar_mom = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*(cmom-1)*nx*ny*nz*ng, NULL, &err);
     check_error(err, "Creating scalar_mom buffer");
     zero_scalar_moments();
 
