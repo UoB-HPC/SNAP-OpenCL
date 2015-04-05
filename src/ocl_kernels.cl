@@ -198,7 +198,9 @@ __kernel void reduce_angular(
     const unsigned int nang,
     const unsigned int ng,
     const unsigned int noct,
+    const unsigned int cmom,
     __global const double * restrict weights,
+    __global const double * restrict scat_coef,
 
     __global const double * restrict angular0,
     __global const double * restrict angular1,
@@ -219,7 +221,9 @@ __kernel void reduce_angular(
     __global const double * restrict angular_prev7,
 
     __global const double * restrict time_delta,
-    __global double * restrict scalar)
+    __global double * restrict scalar,
+    __global double * restrict scalar_mom
+    )
 {
     // Cell index
     int i = get_global_id(0);
@@ -230,6 +234,8 @@ __kernel void reduce_angular(
     for (unsigned int g = 0; g < ng; g++)
     {
         double tot_g = 0.0;
+        for (unsigned int l = 0; l < cmom-1; l++)
+            scalar_mom(l,i,j,k,g) = 0.0;
         // For angles
         for (unsigned int a = 0; a < nang; a++)
         {
@@ -248,6 +254,17 @@ __kernel void reduce_angular(
                 tot_g += weights(a) * (0.5 * (angular(a,g,i,j,k,5) + angular_prev(a,g,i,j,k,5)));
                 tot_g += weights(a) * (0.5 * (angular(a,g,i,j,k,6) + angular_prev(a,g,i,j,k,6)));
                 tot_g += weights(a) * (0.5 * (angular(a,g,i,j,k,7) + angular_prev(a,g,i,j,k,7)));
+                for (unsigned int l = 0; l < (cmom-1); l++)
+                {
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,0) * weights(a) * (0.5 * (angular(a,g,i,j,k,0) + angular_prev(a,g,i,j,k,0)));
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,1) * weights(a) * (0.5 * (angular(a,g,i,j,k,1) + angular_prev(a,g,i,j,k,1)));
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,2) * weights(a) * (0.5 * (angular(a,g,i,j,k,2) + angular_prev(a,g,i,j,k,2)));
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,3) * weights(a) * (0.5 * (angular(a,g,i,j,k,3) + angular_prev(a,g,i,j,k,3)));
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,4) * weights(a) * (0.5 * (angular(a,g,i,j,k,4) + angular_prev(a,g,i,j,k,4)));
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,5) * weights(a) * (0.5 * (angular(a,g,i,j,k,5) + angular_prev(a,g,i,j,k,5)));
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,6) * weights(a) * (0.5 * (angular(a,g,i,j,k,6) + angular_prev(a,g,i,j,k,6)));
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,7) * weights(a) * (0.5 * (angular(a,g,i,j,k,7) + angular_prev(a,g,i,j,k,7)));
+                }
             }
             else
             {
@@ -259,6 +276,17 @@ __kernel void reduce_angular(
                 tot_g += weights(a) * angular(a,g,i,j,k,5);
                 tot_g += weights(a) * angular(a,g,i,j,k,6);
                 tot_g += weights(a) * angular(a,g,i,j,k,7);
+                for (unsigned int l = 0; l < cmom-1; l++)
+                {
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,0) * weights(a) * angular(a,g,i,j,k,0);
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,1) * weights(a) * angular(a,g,i,j,k,1);
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,2) * weights(a) * angular(a,g,i,j,k,2);
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,3) * weights(a) * angular(a,g,i,j,k,3);
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,4) * weights(a) * angular(a,g,i,j,k,4);
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,5) * weights(a) * angular(a,g,i,j,k,5);
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,6) * weights(a) * angular(a,g,i,j,k,6);
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,7) * weights(a) * angular(a,g,i,j,k,7);
+                }
             }
         }
         scalar(i,j,k,g) = tot_g;
