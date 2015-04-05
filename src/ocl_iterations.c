@@ -255,6 +255,31 @@ void compute_inner_source(void)
 }
 
 
+
+void expand_scattering_cross_section(void)
+{
+    cl_int err;
+    const size_t global[1] = {ng};
+
+    err = clSetKernelArg(k_calc_scattering_cross_section, 0, sizeof(unsigned int), &nx);
+    err |= clSetKernelArg(k_calc_scattering_cross_section, 1, sizeof(unsigned int), &ny);
+    err |= clSetKernelArg(k_calc_scattering_cross_section, 2, sizeof(unsigned int), &nz);
+    err |= clSetKernelArg(k_calc_scattering_cross_section, 3, sizeof(unsigned int), &ng);
+    err |= clSetKernelArg(k_calc_scattering_cross_section, 4, sizeof(unsigned int), &nmom);
+    err |= clSetKernelArg(k_calc_scattering_cross_section, 5, sizeof(unsigned int), &nmat);
+    err |= clSetKernelArg(k_calc_scattering_cross_section, 6, sizeof(cl_mem), &d_gg_cs);
+    err |= clSetKernelArg(k_calc_scattering_cross_section, 7, sizeof(cl_mem), &d_map);
+    err |= clSetKernelArg(k_calc_scattering_cross_section, 8, sizeof(cl_mem), &d_scat_cs);
+    check_error(err, "Setting calc_total_scattering_section arguments");
+
+    err = clEnqueueNDRangeKernel(queue[0], k_calc_scattering_cross_section, 1, 0, global, NULL, 0, NULL, NULL);
+    check_error(err, "Enqueue calc_scattering_cross_section kernel");
+}
+
+
+
+
+
 // Do the timestep, outer and inner iterations
 void ocl_iterations_(void)
 {
@@ -272,6 +297,7 @@ void ocl_iterations_(void)
         for (unsigned int o = 0; o < outers; o++)
         {
             expand_cross_section(&d_xs, &d_total_cross_section);
+            expand_scattering_cross_section();
             calc_dd_coefficients();
             calc_time_delta();
             calc_denom();

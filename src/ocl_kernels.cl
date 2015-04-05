@@ -382,6 +382,28 @@ __kernel void calc_total_cross_section(
     }
 }
 
+__kernel void calc_scattering_cross_section(
+    const unsigned int nx,
+    const unsigned int ny,
+    const unsigned int nz,
+    const unsigned int ng,
+    const unsigned int nmom,
+    const unsigned int nmat,
+    __global const double * restrict gg_cs,
+    __global const unsigned int * restrict map,
+    __global double * restrict scat_cs
+    )
+{
+    unsigned int g = get_global_id(0);
+
+    for (unsigned int k = 0; k < nz; k++)
+        for (unsigned int j = 0; j < ny; j++)
+            for (unsigned int i = 0; i < nx; i++)
+                for (unsigned int l = 0; l < nmom; l++)
+                    scat_cs(l,i,j,k,g) = gg_cs(map(i,j,k)-1,l,g,g);
+}
+
+
 // Calculate the outer source
 __kernel void calc_outer_source(
     const unsigned int nx,
