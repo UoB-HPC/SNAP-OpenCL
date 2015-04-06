@@ -437,14 +437,14 @@ __kernel void calc_outer_source(
                     if (g1 == g2)
                         continue;
 
-                    g2g_source(0,i,j,k,g1) += gg_cs(map(i,j,k)-1,0,g1,g2) * scalar(i,j,k,g2);
+                    g2g_source(0,i,j,k,g1) += gg_cs(map(i,j,k)-1,0,g2,g1) * scalar(i,j,k,g2);
 
                     unsigned int mom = 1;
                     for (unsigned int l = 1; l < nmom; l++)
                     {
                         for (unsigned int m = 0; m < lma(l); m++)
                         {
-                            g2g_source(mom,i,j,k,g1) += gg_cs(map(i,j,k)-1,l,g1,g2) * scalar_mom(mom-1,i,j,k,g2);
+                            g2g_source(mom,i,j,k,g1) += gg_cs(map(i,j,k)-1,l,g2,g1) * scalar_mom(mom-1,i,j,k,g2);
                             mom++;
                         }
                     }
