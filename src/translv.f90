@@ -121,7 +121,7 @@ SUBROUTINE translv
   CALL wtime ( ocl_first_copy_tic )
 
   CALL set_ocl_problem ( nx, ny_gl, nz_gl, ng, nang, noct, cmom, nmom, ichunk, dx, dy, dz, dt, nmat, nsteps, oitm, iitm )
-  CALL copy_to_device ( mu, eta, xi, ec, t_xs, w, v, sigt, mat, qi, slgg, s_xs, lma, q2grp, ptr_in )
+  CALL copy_to_device ( mu, eta, xi, ec, t_xs, w, v, sigt, mat, qi, slgg, lma, q2grp, ptr_in )
 
   CALL wtime ( ocl_first_copy_toc )
 
