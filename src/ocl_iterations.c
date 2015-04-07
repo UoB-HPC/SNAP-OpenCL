@@ -310,18 +310,23 @@ void ocl_iterations_(void)
     double *new_outer_scalar = malloc(sizeof(double)*nx*ny*nz*ng);
     double *old_inner_scalar = malloc(sizeof(double)*nx*ny*nz*ng);
     double *new_inner_scalar = malloc(sizeof(double)*nx*ny*nz*ng);
+    bool outer_done;
+    double t1 = omp_get_wtime();
     // Timestep loop
     for (unsigned int t = 0; t < timesteps; t++)
     {
+        unsigned int tot_outers = 0;
+        unsigned int tot_inners = 0;
         global_timestep = t;
         // Calculate data required at the beginning of each timestep
         zero_scalar_flux();
         zero_flux_moments_buffer();
         // Outer loop
-        bool outer_done = false;
+        outer_done = false;
         for (unsigned int o = 0; o < outers; o++)
         {
             bool inner_done = false;
+            tot_outers++;
             expand_cross_section(&d_xs, &d_total_cross_section);
             expand_scattering_cross_section();
             calc_dd_coefficients();
@@ -334,6 +339,7 @@ void ocl_iterations_(void)
             // Inner loop
             for (unsigned int i = 0; i < inners; i++)
             {
+                tot_inners++;
                 // Compute the inner source
                 compute_inner_source();
                 // Save flux
@@ -355,9 +361,20 @@ void ocl_iterations_(void)
             if (outer_done && inner_done)
                 break;
         }
+        printf("Time %d -  %d outers, %d inners.\n", t, tot_outers, tot_inners);
+        // Exit the time loop early if outer not converged
+        if (!outer_done)
+            break;
     }
     clFinish(queue[0]);
+    double t2 = omp_get_wtime();
+
+    printf("OpenCL: Time to convergence: %.3lfs\n", t2-t1);
+    if (!outer_done)
+        printf("Warning: did not converge\n");
 
     free(old_outer_scalar);
+    free(new_outer_scalar);
     free(old_inner_scalar);
+    free(new_inner_scalar);
 }
