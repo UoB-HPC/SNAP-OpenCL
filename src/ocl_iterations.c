@@ -276,7 +276,7 @@ void expand_scattering_cross_section(void)
     check_error(err, "Enqueue calc_scattering_cross_section kernel");
 }
 
-bool check_inner_convergence(double *old, double *new)
+bool check_convergence(double *old, double *new, double epsi)
 {
     bool done = true;
     for (unsigned int g = 0; g < ng; g++)
@@ -320,8 +320,10 @@ void ocl_iterations_(void)
         zero_scalar_flux();
         zero_flux_moments_buffer();
         // Outer loop
+        bool outer_done = false;
         for (unsigned int o = 0; o < outers; o++)
         {
+            bool inner_done = false;
             expand_cross_section(&d_xs, &d_total_cross_section);
             expand_scattering_cross_section();
             calc_dd_coefficients();
@@ -330,16 +332,14 @@ void ocl_iterations_(void)
             // Compute the outer source
             compute_outer_source();
             // Save flux
-            err = clEnqueueReadBuffer(queue[0], d_scalar_flux, CL_TRUE, 0, sizeof(double)*nx*ny*nz*ng, old_outer_scalar, 0, NULL, NULL);
-            check_error(err, "Copying outer scalar flux back to host");
+            get_scalar_flux_(old_outer_scalar);
             // Inner loop
             for (unsigned int i = 0; i < inners; i++)
             {
                 // Compute the inner source
                 compute_inner_source();
                 // Save flux
-                err = clEnqueueReadBuffer(queue[0], d_scalar_flux, CL_TRUE, 0, sizeof(double)*nx*ny*nz*ng, old_inner_scalar, 0, NULL, NULL);
-                check_error(err, "Copying inner scalar flux back to host");
+                get_scalar_flux_(old_inner_scalar);
                 zero_edge_flux_buffers_();
                 // Sweep
                 ocl_sweep_();
@@ -347,11 +347,15 @@ void ocl_iterations_(void)
                 ocl_scalar_flux_();
                 // Check convergence
                 get_scalar_flux_(new_inner_scalar);
-                if (check_inner_convergence(old_inner_scalar, new_inner_scalar))
+                inner_done = check_convergence(old_inner_scalar, new_inner_scalar, epsi);
+                if (inner_done)
                     break;
             }
             // Check convergence
-
+            get_scalar_flux_(new_outer_scalar);
+            outer_done = check_convergence(old_outer_scalar, new_outer_scalar, 100.0*epsi);
+            if (outer_done && inner_done)
+                break;
         }
     }
     clFinish(queue[0]);
