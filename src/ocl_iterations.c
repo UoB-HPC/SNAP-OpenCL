@@ -278,7 +278,6 @@ void expand_scattering_cross_section(void)
 
 bool check_convergence(double *old, double *new, double epsi)
 {
-    bool done = true;
     for (unsigned int g = 0; g < ng; g++)
         for (unsigned int k = 0; k < nz; k++)
             for (unsigned int j = 0; j < ny; j++)
@@ -293,13 +292,12 @@ bool check_convergence(double *old, double *new, double epsi)
                     {
                         val = fabs(new[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)] - old[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)]);
                     }
-                    printf("%lf\n", val);
                     if (val > epsi)
                     {
                         return false;
                     }
                 }
-    return done;
+    return true;
 }
 
 
