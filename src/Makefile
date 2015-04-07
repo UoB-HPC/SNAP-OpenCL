@@ -24,6 +24,7 @@ endif
 
 CC = mpicc
 CFLAGS = -std=c99 -O3
+CFLAGS2 = -lm
 ifeq ($(shell mpicc --showme:command),gcc)
 	CFLAGS += -fopenmp
 	FFLAGS += -fopenmp
@@ -126,7 +127,7 @@ mms.o:	global.o geom.o sn.o data.o control.o plib.o
 # C rule
 #
 %.o:	%.c ocl_sweep.h
-	$(CC) $(CFLAGS) -c $< $(OPENCL)
+	$(CC) $(CFLAGS) -c $< $(OPENCL) $(CFLAGS2)
 
 ocl_init.o:	ocl_kernels.h
 

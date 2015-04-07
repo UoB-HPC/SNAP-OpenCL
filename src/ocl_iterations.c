@@ -276,7 +276,35 @@ void expand_scattering_cross_section(void)
     check_error(err, "Enqueue calc_scattering_cross_section kernel");
 }
 
-
+bool check_inner_convergence(double *old, double *new)
+{
+    printf("%lf - %lf\n", old[0], new[0]);
+    bool done = true;
+    for (unsigned int g = 0; g < ng; g++)
+        for (unsigned int k = 0; k < nz; k++)
+            for (unsigned int j = 0; j < ny; j++)
+                for (unsigned int i = 0; i < nx; i++)
+                {
+                    double val;
+                    if (fabs(old[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)] > tolr))
+                    {
+                        val = fabs(new[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)]/old[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)] - 1.0);
+                        printf("we did this one 1: %lf\n", val);
+                    }
+                    else
+                    {
+                        val = fabs(new[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)] - old[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)]);
+                        printf("we did this one 2: %lf\n", val);
+                    }
+                    printf("%lf\n", val);
+                    if (val > epsi)
+                    {
+                        printf("not convergence\n");
+                        return false;
+                    }
+                }
+    return done;
+}
 
 
 
@@ -285,7 +313,9 @@ void ocl_iterations_(void)
 {
     cl_int err;
     double *old_outer_scalar = malloc(sizeof(double)*nx*ny*nz*ng);
+    double *new_outer_scalar = malloc(sizeof(double)*nx*ny*nz*ng);
     double *old_inner_scalar = malloc(sizeof(double)*nx*ny*nz*ng);
+    double *new_inner_scalar = malloc(sizeof(double)*nx*ny*nz*ng);
     // Timestep loop
     for (unsigned int t = 0; t < timesteps; t++)
     {
@@ -314,11 +344,15 @@ void ocl_iterations_(void)
                 // Save flux
                 err = clEnqueueReadBuffer(queue[0], d_scalar_flux, CL_TRUE, 0, sizeof(double)*nx*ny*nz*ng, old_inner_scalar, 0, NULL, NULL);
                 check_error(err, "Copying inner scalar flux back to host");
+                zero_edge_flux_buffers_();
                 // Sweep
                 ocl_sweep_();
                 // Scalar flux
                 ocl_scalar_flux_();
                 // Check convergence
+                get_scalar_flux_(new_inner_scalar);
+                if (check_inner_convergence(old_inner_scalar, new_inner_scalar))
+                    break;
             }
             // Check convergence
 
