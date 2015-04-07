@@ -134,6 +134,9 @@ void opencl_setup_(void)
     k_calc_inner_source = clCreateKernel(program, "calc_inner_source", &err);
     check_error(err, "Creating kernel calc_inner_source");
 
+    k_calc_scattering_cross_section = clCreateKernel(program, "calc_scattering_cross_section", &err);
+    check_error(err, "Creating kernel scattering_cross_section");
+
     printf("\nOpenCL environment setup complete\n\n");
 
 }
@@ -269,6 +272,9 @@ void opencl_teardown_(void)
 
     err = clReleaseKernel(k_calc_inner_source);
     check_error(err, "Releasing k_calc_inner_source kernel");
+
+    err = clReleaseKernel(k_calc_scattering_cross_section);
+    check_error(err, "Releasing k_calc_scattering_cross_section kernel");
 
     // Release program
     err = clReleaseProgram(program);
