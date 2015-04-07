@@ -59,8 +59,10 @@ SUBROUTINE translv
     REAL(r_knd) :: ocl_update_tic, ocl_update_toc
     REAL(r_knd), DIMENSION(:,:,:,:,:,:), POINTER :: ocl_angular_flux
     REAL(r_knd), DIMENSION(:,:,:,:), POINTER :: scalar_flux
+    REAL(r_knd), DIMENSION(:,:,:,:,:), POINTER :: scalar_flux_moments
     ALLOCATE( ocl_angular_flux(nang,nx,ny_gl,nz_gl,noct,ng) )
     ALLOCATE( scalar_flux(nx,ny_gl,nz_gl,ng) )
+    ALLOCATE( scalar_flux_moments((cmom-1),nx,ny_gl,nz_gl,ng) )
 !_______________________________________________________________________
 !
 ! Call for data allocations. Some allocations depend on the problem
@@ -301,20 +303,37 @@ SUBROUTINE translv
 
 !_______________________________________________________________________
 !
-!   Compute the Scalar Flux from the angular flux using OpenCL
+!   Check that scalar and scalar moment fluxes match
 !_______________________________________________________________________
+
+  PRINT *
+  PRINT *, "Checking scalar and moments match"
+  PRINT *, "Tolerance", 100.0*epsi
+  PRINT *
 
   CALL get_scalar_flux( scalar_flux )
 
-  IF ( ALL ( ABS ( scalar_flux - flux ) < epsi ) ) THEN
+  IF ( ALL ( ABS ( scalar_flux - flux ) < 100.0*epsi ) ) THEN
     PRINT *, "Scalar flux matched"
   ELSE
     PRINT *, "Scalar flux did not match"
   END IF
+  PRINT *, "Max error:", MAXVAL ( ABS ( scalar_flux - flux ) )
 
+  PRINT *
+
+  CALL get_scalar_flux_moments( scalar_flux_moments )
+  IF ( ALL ( ABS ( scalar_flux_moments - fluxm ) < 100.0*epsi ) ) THEN
+    PRINT *, "Scalar flux moments matched"
+  ELSE
+    PRINT *, "Scalar flux moments did not match"
+  END IF
+  PRINT *, "Max error:", MAXVAL ( ABS ( scalar_flux_moments - fluxm ) )
+  PRINT *
 
   DEALLOCATE ( ocl_angular_flux )
   DEALLOCATE ( scalar_flux )
+  DEALLOCATE ( scalar_flux_moments )
 
 !_______________________________________________________________________
 !
@@ -352,7 +371,7 @@ SUBROUTINE translv
   214 FORMAT( 'OpenCL sweeps + scalar reduction: ', F10.3, 's')
   215 FORMAT( 'OpenCL flux reduction time: ', F10.3, 's')
   216 FORMAT( 'OpenCL grind time (for resident sweep): ', F10.3, 'ns')
-  217 FORMAT( 'Total time (orig + OpenCL): ', F10.3, 's')
+  217 FORMAT( 'Original time: ', F10.3, 's')
 
 !_______________________________________________________________________
 !_______________________________________________________________________

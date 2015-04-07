@@ -239,6 +239,13 @@ void get_scalar_flux_(double *scalar)
     check_error(err, "Enqueue read scalar_flux buffer");
 }
 
+void get_scalar_flux_moments_(double *scalar_moments)
+{
+    cl_int err;
+    err = clEnqueueReadBuffer(queue[0], d_scalar_mom, CL_TRUE, 0, sizeof(double)*(cmom-1)*nx*ny*nz*ng, scalar_moments, 0, NULL, NULL);
+    check_error(err, "Enqueue read scalar_mom buffer");
+}
+
 
 // Copy the flux_out buffer back to the host
 void get_output_flux_(double* flux_out)
