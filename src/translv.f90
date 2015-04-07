@@ -150,9 +150,6 @@ SUBROUTINE translv
 
   time_loop: DO cy = 1, nsteps
 
-    ! Set the timestep for the OpenCL calls
-    !CALL ocl_set_timestep ( cy )
-
     CALL wtime ( t3 )
 
     vdelt = zero
@@ -285,21 +282,7 @@ SUBROUTINE translv
         * REAL( tot_iits, r_knd )
   tgrind = tslv*1.0E9_r_knd / tmp
 
-!_______________________________________________________________________
-!
-!   Check that the OpenCL sweep of the octant matches the original
-!_______________________________________________________________________
-
-  CALL get_output_flux ( ocl_angular_flux )
-
-  DO o = 1, noct
-    IF ( ALL ( ABS ( ocl_angular_flux(:,:,:,:,o,:) - ptr_out(:,:,:,:,o,:) ) < epsi ) ) THEN
-      PRINT *, "Octant", o, "matched"
-    ELSE
-      PRINT *, "Octant", o, "did NOT match"
-      PRINT *, "Biggest error:", MAXVAL ( ABS ( ocl_angular_flux(:,:,:,:,o,:) - ptr_out(:,:,:,:,o,:) ) )
-    END IF
-  END DO
+  WRITE ( *, 217 ) ( t7-t1 )
 
 !_______________________________________________________________________
 !
@@ -335,16 +318,6 @@ SUBROUTINE translv
   DEALLOCATE ( scalar_flux )
   DEALLOCATE ( scalar_flux_moments )
 
-!_______________________________________________________________________
-!
-!   Print OpenCL timing information
-!_______________________________________________________________________
-
-    WRITE ( *, 213 ) ( ocl_copy_time )
-    WRITE ( *, 214 ) ( ocl_sweep_time )
-    WRITE ( *, 215 ) ( ocl_reduc_time )
-    WRITE ( *, 216 ) ( ocl_sweep_time*1.0E9_r_knd / tmp )
-    WRITE ( *, 217 ) ( t7-t1 )
 
 !_______________________________________________________________________
 
