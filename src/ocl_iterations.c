@@ -278,7 +278,6 @@ void expand_scattering_cross_section(void)
 
 bool check_inner_convergence(double *old, double *new)
 {
-    printf("%lf - %lf\n", old[0], new[0]);
     bool done = true;
     for (unsigned int g = 0; g < ng; g++)
         for (unsigned int k = 0; k < nz; k++)
@@ -289,17 +288,14 @@ bool check_inner_convergence(double *old, double *new)
                     if (fabs(old[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)] > tolr))
                     {
                         val = fabs(new[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)]/old[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)] - 1.0);
-                        printf("we did this one 1: %lf\n", val);
                     }
                     else
                     {
                         val = fabs(new[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)] - old[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)]);
-                        printf("we did this one 2: %lf\n", val);
                     }
                     printf("%lf\n", val);
                     if (val > epsi)
                     {
-                        printf("not convergence\n");
                         return false;
                     }
                 }
