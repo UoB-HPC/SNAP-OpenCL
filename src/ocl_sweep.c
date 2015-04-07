@@ -239,23 +239,14 @@ void ocl_sweep_(void)
     unsigned int ndiag = ichunk + ny + nz - 2;
 
     // Get the order of cells to enqueue
-    double t1 = omp_get_wtime();
     plane *planes = compute_sweep_order();
-    double t2 = omp_get_wtime();
-    printf("computing order took %lfs\n",t2-t1);
 
     // Set the constant kernel arguemnts
-    t1 = omp_get_wtime();
     set_sweep_cell_args();
-    t2 = omp_get_wtime();
-    printf("setting args took %lfs\n", t2-t1);
 
     for (int o = 0; o < noct; o++)
     {
-        t1 = omp_get_wtime();
         enqueue_octant(global_timestep, o, ndiag, planes);
-        t2 = omp_get_wtime();
-        printf("octant %d enqueue took %lfs\n", o, t2-t1);
         zero_edge_flux_buffers_();
     }
 
