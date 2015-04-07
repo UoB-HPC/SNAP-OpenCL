@@ -24,3 +24,6 @@
 
     int outers;
     int inners;
+
+    double epsi;
+    double tolr;

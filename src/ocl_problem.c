@@ -10,7 +10,8 @@ void set_ocl_problem_(
     double *dx_, double *dy_, double *dz_,
     double *dt_,
     int *nmat_,
-    int *timesteps_, int *outers_, int *inners_)
+    int *timesteps_, int *outers_, int *inners_,
+    double *epsi_, double *tolr_)
 {
     // Save problem size information to globals
     nx = *nx_;
@@ -30,6 +31,9 @@ void set_ocl_problem_(
     timesteps = *timesteps_;
     outers = *outers_;
     inners = *inners_;
+
+    epsi = *epsi_;
+    tolr = *tolr_;
 
     if (nx != ichunk)
         printf("Warning: nx and ichunk are different - expect the answers to be wrong...\n");
