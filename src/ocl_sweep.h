@@ -33,6 +33,7 @@ cl_kernel k_calc_dd_coefficients;
 cl_kernel k_calc_total_cross_section;
 cl_kernel k_calc_outer_source;
 cl_kernel k_calc_inner_source;
+cl_kernel k_calc_scattering_cross_section;
 
 // OpenCL buffers
 cl_mem d_source;
