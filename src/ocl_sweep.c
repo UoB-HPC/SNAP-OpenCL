@@ -252,8 +252,8 @@ void ocl_sweep_(void)
 
     // The last cell, and the copy zero array are on queue zero,
     // so we only have to wait for this one
-    err = clFinish(queue[0]);
-    check_error(err, "Finish queue 0");
+    //err = clFinish(queue[0]);
+    //check_error(err, "Finish queue 0");
 
     // Free planes
     for (unsigned int i = 0; i < ndiag; i++)

@@ -45,7 +45,7 @@ void ocl_scalar_flux_(void)
     err = clEnqueueNDRangeKernel(queue[0], k_reduce_angular, 3, 0, global, NULL, 0, NULL, NULL);
     check_error(err, "Enqueue reduce_angular kernel");
 
-    err = clFinish(queue[0]);
-    check_error(err, "Finishing queue after reduce_angular kernel");
+    //err = clFinish(queue[0]);
+    //check_error(err, "Finishing queue after reduce_angular kernel");
 
 }
