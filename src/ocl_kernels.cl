@@ -226,9 +226,9 @@ __kernel void reduce_angular(
     )
 {
     // Cell index
-    int i = get_global_id(0);
-    int j = get_global_id(1);
-    int k = get_global_id(2);
+    const unsigned int i = get_global_id(0);
+    const unsigned int j = get_global_id(1);
+    const unsigned int k = get_global_id(2);
 
     // For groups
     for (unsigned int g = 0; g < ng; g++)
@@ -276,7 +276,7 @@ __kernel void reduce_angular(
                 tot_g += weights(a) * angular(a,g,i,j,k,5);
                 tot_g += weights(a) * angular(a,g,i,j,k,6);
                 tot_g += weights(a) * angular(a,g,i,j,k,7);
-                for (unsigned int l = 0; l < cmom-1; l++)
+                for (unsigned int l = 0; l < (cmom-1); l++)
                 {
                     scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,0) * weights(a) * angular(a,g,i,j,k,0);
                     scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,1) * weights(a) * angular(a,g,i,j,k,1);
