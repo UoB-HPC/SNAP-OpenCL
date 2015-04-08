@@ -425,31 +425,31 @@ __kernel void calc_outer_source(
     __global double * restrict g2g_source
     )
 {
-    const unsigned int g1 = get_global_id(0);
+    const unsigned int i = get_global_id(0);
+    const unsigned int j = get_global_id(1);
+    const unsigned int k = get_global_id(2);
 
-    for (unsigned int k = 0; k < nz; k++)
-        for (unsigned int j = 0; j < ny; j++)
-            for (unsigned int i = 0; i < nx; i++)
+    for (unsigned int g1 = 0; g1 < ng; g1++)
+    {
+        g2g_source(0,i,j,k,g1) = fixed_source(i,j,k,g1);
+        for (unsigned int g2 = 0; g2 < ng; g2++)
+        {
+            if (g1 == g2)
+                continue;
+
+            g2g_source(0,i,j,k,g1) += gg_cs(map(i,j,k)-1,0,g2,g1) * scalar(i,j,k,g2);
+
+            unsigned int mom = 1;
+            for (unsigned int l = 1; l < nmom; l++)
             {
-                g2g_source(0,i,j,k,g1) = fixed_source(i,j,k,g1);
-                for (unsigned int g2 = 0; g2 < ng; g2++)
+                for (unsigned int m = 0; m < lma(l); m++)
                 {
-                    if (g1 == g2)
-                        continue;
-
-                    g2g_source(0,i,j,k,g1) += gg_cs(map(i,j,k)-1,0,g2,g1) * scalar(i,j,k,g2);
-
-                    unsigned int mom = 1;
-                    for (unsigned int l = 1; l < nmom; l++)
-                    {
-                        for (unsigned int m = 0; m < lma(l); m++)
-                        {
-                            g2g_source(mom,i,j,k,g1) += gg_cs(map(i,j,k)-1,l,g2,g1) * scalar_mom(mom-1,i,j,k,g2);
-                            mom++;
-                        }
-                    }
+                    g2g_source(mom,i,j,k,g1) += gg_cs(map(i,j,k)-1,l,g2,g1) * scalar_mom(mom-1,i,j,k,g2);
+                    mom++;
                 }
             }
+        }
+    }
 }
 
 // Calculate the inner source
@@ -470,22 +470,22 @@ __kernel void calc_inner_source(
     __global double * restrict source
     )
 {
-    const unsigned int g = get_global_id(0);
+    const unsigned int i = get_global_id(0);
+    const unsigned int j = get_global_id(1);
+    const unsigned int k = get_global_id(2);
 
-    for (unsigned int k = 0; k < nz; k++)
-        for (unsigned int j = 0; j < ny; j++)
-            for (unsigned int i = 0; i < nx; i++)
+    for (unsigned int g = 0; g < ng; g++)
+    {
+        source(0,i,j,k,g) = g2g_source(0,i,j,k,g) + scat_cs(0,i,j,k,g) * scalar(i,j,k,g);
+        unsigned int mom = 1;
+        for (unsigned int l = 1; l < nmom; l++)
+        {
+            for (unsigned int m = 0; m < lma(l); m++)
             {
-                source(0,i,j,k,g) = g2g_source(0,i,j,k,g) + scat_cs(0,i,j,k,g) * scalar(i,j,k,g);
-                unsigned int mom = 1;
-                for (unsigned int l = 1; l < nmom; l++)
-                {
-                    for (unsigned int m = 0; m < lma(l); m++)
-                    {
-                        source(mom,i,j,k,g) = g2g_source(mom,i,j,k,g) + scat_cs(l,i,j,k,g) * scalar_mom(mom-1,i,j,k,g);
-                        mom++;
-                    }
-                }
+                source(mom,i,j,k,g) = g2g_source(mom,i,j,k,g) + scat_cs(l,i,j,k,g) * scalar_mom(mom-1,i,j,k,g);
+                mom++;
             }
+        }
+    }
 }
 
