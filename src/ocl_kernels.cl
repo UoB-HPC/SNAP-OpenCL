@@ -294,6 +294,97 @@ __kernel void reduce_angular(
 }
 
 
+// Reduce within each workgroup
+// Requires each workgroup to be a power of two size
+__kernel void reduce_angular_cell(
+    const unsigned int nx,
+    const unsigned int ny,
+    const unsigned int nz,
+    const unsigned int nang,
+    const unsigned int ng,
+    const unsigned int noct,
+    const unsigned int cmom,
+
+    const unsigned int i,
+    const unsigned int j,
+    const unsigned int k,
+
+    __local double * restrict scratch,
+
+    __global const double * restrict weights,
+    __global const double * restrict scat_coef,
+
+    __global const double * restrict angular0,
+    __global const double * restrict angular1,
+    __global const double * restrict angular2,
+    __global const double * restrict angular3,
+    __global const double * restrict angular4,
+    __global const double * restrict angular5,
+    __global const double * restrict angular6,
+    __global const double * restrict angular7,
+
+    __global const double * restrict angular_prev0,
+    __global const double * restrict angular_prev1,
+    __global const double * restrict angular_prev2,
+    __global const double * restrict angular_prev3,
+    __global const double * restrict angular_prev4,
+    __global const double * restrict angular_prev5,
+    __global const double * restrict angular_prev6,
+    __global const double * restrict angular_prev7,
+
+    __global const double * restrict time_delta,
+    __global double * restrict scalar,
+    __global double * restrict scalar_mom
+    )
+{
+    const unsigned int a = get_local_id(0);
+    const unsigned int g = get_group_id(0);
+
+    // Load into local memory
+    scratch[a] = 0.0;
+    if (a < nang)
+    {
+        if (time_delta(g) != 0.0)
+        {
+            scratch[a] = weights(a) * (0.5 * (angular(a,g,i,j,k,0) + angular_prev(a,g,i,j,k,0)));
+            scratch[a] += weights(a) * (0.5 * (angular(a,g,i,j,k,1) + angular_prev(a,g,i,j,k,1)));
+            scratch[a] += weights(a) * (0.5 * (angular(a,g,i,j,k,2) + angular_prev(a,g,i,j,k,2)));
+            scratch[a] += weights(a) * (0.5 * (angular(a,g,i,j,k,3) + angular_prev(a,g,i,j,k,3)));
+            scratch[a] += weights(a) * (0.5 * (angular(a,g,i,j,k,4) + angular_prev(a,g,i,j,k,4)));
+            scratch[a] += weights(a) * (0.5 * (angular(a,g,i,j,k,5) + angular_prev(a,g,i,j,k,5)));
+            scratch[a] += weights(a) * (0.5 * (angular(a,g,i,j,k,6) + angular_prev(a,g,i,j,k,6)));
+            scratch[a] += weights(a) * (0.5 * (angular(a,g,i,j,k,7) + angular_prev(a,g,i,j,k,7)));
+        }
+        else
+        {
+            scratch[a] = weights(a) * angular(a,g,i,j,k,0);
+            scratch[a] += weights(a) * angular(a,g,i,j,k,1);
+            scratch[a] += weights(a) * angular(a,g,i,j,k,2);
+            scratch[a] += weights(a) * angular(a,g,i,j,k,3);
+            scratch[a] += weights(a) * angular(a,g,i,j,k,4);
+            scratch[a] += weights(a) * angular(a,g,i,j,k,5);
+            scratch[a] += weights(a) * angular(a,g,i,j,k,6);
+            scratch[a] += weights(a) * angular(a,g,i,j,k,7);
+        }
+    }
+
+    barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
+
+    // Reduce in local memory
+    for (int offset = get_local_size(0) / 2; offset > 0; offset >>= 1)
+    {
+        if (a < offset)
+        {
+            scratch[a] += scratch[a + offset];
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+    // Save result
+    if (a == 0)
+        scalar(i,j,k,g) = scratch[0];
+}
+
+
 // Calculate the inverted denominator for all the energy groups
 __kernel void calc_denominator(
     const unsigned int nx,

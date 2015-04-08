@@ -28,6 +28,7 @@ cl_program program;
 // OpenCL kernels
 cl_kernel k_sweep_cell[NUM_QUEUES];
 cl_kernel k_reduce_angular;
+cl_kernel k_reduce_angular_cell;
 
 cl_kernel k_calc_denominator;
 cl_kernel k_calc_time_delta;
