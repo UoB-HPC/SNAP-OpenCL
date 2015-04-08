@@ -172,7 +172,7 @@ void copy_to_device_(
     d_fixed_source = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nx*ny*nz*ng, fixed_source, &err);
     check_error(err, "Creating fixed_source buffer");
 
-    d_gg_cs = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nmom*nx*ny*nz*ng, gg_cs, &err);
+    d_gg_cs = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nmat*nmom*ng*ng, gg_cs, &err);
     check_error(err, "Creating gg_cs buffer");
 
     d_lma = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nmom, lma, &err);
