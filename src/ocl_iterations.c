@@ -143,7 +143,6 @@ void calc_denom(void)
 
     err = clEnqueueNDRangeKernel(queue[0], k_calc_denominator, 2, 0, global, NULL, 0, NULL, NULL);
     check_error(err, "Enqueue calc_denom kernel");
-    clFinish(queue[0]);
 
     double * tmp = malloc(sizeof(double)*nang*ng*nx*ny*nz);
     clEnqueueReadBuffer(queue[0], d_denom, CL_TRUE, 0, sizeof(double)*nang*ng*nx*ny*nz, tmp, 0, NULL, NULL);
