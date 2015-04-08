@@ -33,16 +33,34 @@ void check_device_memory(void)
     }
 
     // Calculate total memory usage
-    unsigned long total = 2 * noct * memory;
+    unsigned long total = 0;
+    total += sizeof(double)*nang*nx*ny*nz*ng;
+    total += sizeof(double)*nang*nx*ny*nz*ng;
     total += sizeof(double)*nang*ny*nz*ng;
     total += sizeof(double)*nang*nx*nz*ng;
     total += sizeof(double)*nang*nx*ny*ng;
-    total += 3 * sizeof(double)*nang;
+    total += sizeof(double)*nang;
+    total += sizeof(double)*nang;
+    total += sizeof(double)*nang;
+    total += sizeof(double)*nang;
+    total += sizeof(double)*nang;
     total += sizeof(double)*nang*cmom*noct;
     total += sizeof(double)*nx*ny*nz*ng;
+    total += sizeof(double)*nmat*ng;
+    total += sizeof(int)*nx*ny*nz;
+    total += sizeof(double)*nx*ny*nz*ng;
+    total += sizeof(double)*nmat*nmom*ng*ng;
+    total += sizeof(double)*nmom;
+    total += sizeof(double)*cmom*nx*ny*nz*ng;
+    if (cmom == 1)
+        total += sizeof(double)*nx*ny*nz*ng;
+    else
+        total += sizeof(double)*(cmom-1)*nx*ny*nz*ng;
+    total += sizeof(double)*nmom*nx*ny*nz*ng;
     total += sizeof(double)*nang;
     total += sizeof(double)*nang*nx*ny*nz*ng;
     total += sizeof(double)*cmom*nx*ny*nz*ng;
+    total += sizeof(double)*ng;
     total += sizeof(double)*ng;
     total += sizeof(double)*nx*ny*nz*ng;
 
