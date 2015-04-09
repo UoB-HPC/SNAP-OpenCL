@@ -99,7 +99,9 @@ void copy_to_device_(
     int *mat,
     double *fixed_source,
     double *gg_cs,
-    int *lma)
+    int *lma,
+    double *g2g_source,
+    double *flux_in)
 {
 
     check_device_memory();
@@ -194,7 +196,7 @@ void copy_to_device_(
     d_lma = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(double)*nmom, lma, &err);
     check_error(err, "Creating lma buffer");
 
-    d_g2g_source = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(double)*cmom*nx*ny*nz*ng, NULL, &err);
+    d_g2g_source = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(double)*cmom*nx*ny*nz*ng, g2g_source, &err);
     check_error(err, "Creating g2g_source buffer");
 
     if (cmom == 1)
