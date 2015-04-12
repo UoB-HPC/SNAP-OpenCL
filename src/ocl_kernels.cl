@@ -94,8 +94,8 @@ __kernel void sweep_cell(
     )
 {
     // Get indexes for angle and group
-    int a_idx = get_global_id(0) % nang;
-    int g_idx = get_global_id(0) / nang;
+    const unsigned int a_idx = get_global_id(0) % nang;
+    const unsigned int g_idx = get_global_id(0) / nang;
 
     if (a_idx >= nang || g_idx >= ng)
         return;
@@ -639,7 +639,7 @@ __kernel void calc_outer_source(
             unsigned int mom = 1;
             for (unsigned int l = 1; l < nmom; l++)
             {
-                for (unsigned int m = 0; m < lma(l); m++)
+                for (int m = 0; m < lma(l); m++)
                 {
                     g2g_source(mom,i,j,k,g1) += gg_cs(map(i,j,k)-1,l,g2,g1) * scalar_mom(mom-1,i,j,k,g2);
                     mom++;
@@ -677,7 +677,7 @@ __kernel void calc_inner_source(
         unsigned int mom = 1;
         for (unsigned int l = 1; l < nmom; l++)
         {
-            for (unsigned int m = 0; m < lma(l); m++)
+            for (int m = 0; m < lma(l); m++)
             {
                 source(mom,i,j,k,g) = g2g_source(mom,i,j,k,g) + scat_cs(l,i,j,k,g) * scalar_mom(mom-1,i,j,k,g);
                 mom++;
