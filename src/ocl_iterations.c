@@ -347,8 +347,9 @@ void ocl_iterations_(void)
                 // Sweep
                 ocl_sweep_();
                 // Scalar flux
-                //ocl_scalar_flux_();
+                // ocl_scalar_flux_();
                 reduce_angular_cells();
+                reduce_moments_cells();
                 // Check convergence
                 get_scalar_flux_(new_inner_scalar);
                 inner_done = check_convergence(old_inner_scalar, new_inner_scalar, epsi);

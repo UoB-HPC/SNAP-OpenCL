@@ -119,6 +119,9 @@ void opencl_setup_(void)
     k_reduce_angular_cell = clCreateKernel(program, "reduce_angular_cell", &err);
     check_error(err, "Creating kernel reduce_angular_cell");
 
+    k_reduce_moments_cell = clCreateKernel(program, "reduce_moments_cell", &err);
+    check_error(err, "Creating kernel reduce_moments_cell");
+
     k_calc_denominator = clCreateKernel(program, "calc_denominator", &err);
     check_error(err, "Creating kernel calc_denominator");
 
@@ -254,6 +257,9 @@ void opencl_teardown_(void)
 
     err = clReleaseKernel(k_reduce_angular_cell);
     check_error(err, "Releasing k_reduce_angular_cell kernel");
+
+    err = clReleaseKernel(k_reduce_moments_cell);
+    check_error(err, "Releasing k_reduce_moments_cell kernel");
 
     err = clReleaseKernel(k_calc_denominator);
     check_error(err, "Releasing k_calc_denominator kernel");
