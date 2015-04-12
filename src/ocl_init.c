@@ -242,12 +242,6 @@ void opencl_teardown_(void)
     err = clReleaseMemObject(d_scat_cs);
     check_error(err, "Releasing d_scat_cs buffer");
 
-    for (int i = 0; i < NUM_QUEUES; i++)
-    {
-        err = clReleaseCommandQueue(queue[i]);
-        check_error(err, "Releasing queue");
-    }
-
     // Release kernels
     for (int i = 0; i < NUM_QUEUES; i++)
     {
@@ -290,6 +284,12 @@ void opencl_teardown_(void)
     err = clReleaseDevice(device);
     check_error(err, "Releasing device");
 #endif
+
+    for (int i = 0; i < NUM_QUEUES; i++)
+    {
+        err = clReleaseCommandQueue(queue[i]);
+        check_error(err, "Releasing queue");
+    }
 
     // Release context
     err = clReleaseContext(context);
