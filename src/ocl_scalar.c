@@ -19,23 +19,46 @@ void ocl_scalar_flux_(void)
     err |= clSetKernelArg(k_reduce_angular, 7, sizeof(cl_mem), &d_weights);
     err |= clSetKernelArg(k_reduce_angular, 8, sizeof(cl_mem), &d_scat_coeff);
 
-    err |= clSetKernelArg(k_reduce_angular, 9, sizeof(cl_mem), &d_flux_out[0]);
-    err |= clSetKernelArg(k_reduce_angular, 10, sizeof(cl_mem), &d_flux_out[1]);
-    err |= clSetKernelArg(k_reduce_angular, 11, sizeof(cl_mem), &d_flux_out[2]);
-    err |= clSetKernelArg(k_reduce_angular, 12, sizeof(cl_mem), &d_flux_out[3]);
-    err |= clSetKernelArg(k_reduce_angular, 13, sizeof(cl_mem), &d_flux_out[4]);
-    err |= clSetKernelArg(k_reduce_angular, 14, sizeof(cl_mem), &d_flux_out[5]);
-    err |= clSetKernelArg(k_reduce_angular, 15, sizeof(cl_mem), &d_flux_out[6]);
-    err |= clSetKernelArg(k_reduce_angular, 16, sizeof(cl_mem), &d_flux_out[7]);
+    if (global_timestep % 2 == 0)
+    {
+        err |= clSetKernelArg(k_reduce_angular, 9, sizeof(cl_mem), &d_flux_out[0]);
+        err |= clSetKernelArg(k_reduce_angular, 10, sizeof(cl_mem), &d_flux_out[1]);
+        err |= clSetKernelArg(k_reduce_angular, 11, sizeof(cl_mem), &d_flux_out[2]);
+        err |= clSetKernelArg(k_reduce_angular, 12, sizeof(cl_mem), &d_flux_out[3]);
+        err |= clSetKernelArg(k_reduce_angular, 13, sizeof(cl_mem), &d_flux_out[4]);
+        err |= clSetKernelArg(k_reduce_angular, 14, sizeof(cl_mem), &d_flux_out[5]);
+        err |= clSetKernelArg(k_reduce_angular, 15, sizeof(cl_mem), &d_flux_out[6]);
+        err |= clSetKernelArg(k_reduce_angular, 16, sizeof(cl_mem), &d_flux_out[7]);
 
-    err |= clSetKernelArg(k_reduce_angular, 17, sizeof(cl_mem), &d_flux_in[0]);
-    err |= clSetKernelArg(k_reduce_angular, 18, sizeof(cl_mem), &d_flux_in[1]);
-    err |= clSetKernelArg(k_reduce_angular, 19, sizeof(cl_mem), &d_flux_in[2]);
-    err |= clSetKernelArg(k_reduce_angular, 20, sizeof(cl_mem), &d_flux_in[3]);
-    err |= clSetKernelArg(k_reduce_angular, 21, sizeof(cl_mem), &d_flux_in[4]);
-    err |= clSetKernelArg(k_reduce_angular, 22, sizeof(cl_mem), &d_flux_in[5]);
-    err |= clSetKernelArg(k_reduce_angular, 23, sizeof(cl_mem), &d_flux_in[6]);
-    err |= clSetKernelArg(k_reduce_angular, 24, sizeof(cl_mem), &d_flux_in[7]);
+        err |= clSetKernelArg(k_reduce_angular, 17, sizeof(cl_mem), &d_flux_in[0]);
+        err |= clSetKernelArg(k_reduce_angular, 18, sizeof(cl_mem), &d_flux_in[1]);
+        err |= clSetKernelArg(k_reduce_angular, 19, sizeof(cl_mem), &d_flux_in[2]);
+        err |= clSetKernelArg(k_reduce_angular, 20, sizeof(cl_mem), &d_flux_in[3]);
+        err |= clSetKernelArg(k_reduce_angular, 21, sizeof(cl_mem), &d_flux_in[4]);
+        err |= clSetKernelArg(k_reduce_angular, 22, sizeof(cl_mem), &d_flux_in[5]);
+        err |= clSetKernelArg(k_reduce_angular, 23, sizeof(cl_mem), &d_flux_in[6]);
+        err |= clSetKernelArg(k_reduce_angular, 24, sizeof(cl_mem), &d_flux_in[7]);
+    }
+    else
+    {
+        err |= clSetKernelArg(k_reduce_angular, 9, sizeof(cl_mem), &d_flux_in[0]);
+        err |= clSetKernelArg(k_reduce_angular, 10, sizeof(cl_mem), &d_flux_in[1]);
+        err |= clSetKernelArg(k_reduce_angular, 11, sizeof(cl_mem), &d_flux_in[2]);
+        err |= clSetKernelArg(k_reduce_angular, 12, sizeof(cl_mem), &d_flux_in[3]);
+        err |= clSetKernelArg(k_reduce_angular, 13, sizeof(cl_mem), &d_flux_in[4]);
+        err |= clSetKernelArg(k_reduce_angular, 14, sizeof(cl_mem), &d_flux_in[5]);
+        err |= clSetKernelArg(k_reduce_angular, 15, sizeof(cl_mem), &d_flux_in[6]);
+        err |= clSetKernelArg(k_reduce_angular, 16, sizeof(cl_mem), &d_flux_in[7]);
+
+        err |= clSetKernelArg(k_reduce_angular, 17, sizeof(cl_mem), &d_flux_out[0]);
+        err |= clSetKernelArg(k_reduce_angular, 18, sizeof(cl_mem), &d_flux_out[1]);
+        err |= clSetKernelArg(k_reduce_angular, 19, sizeof(cl_mem), &d_flux_out[2]);
+        err |= clSetKernelArg(k_reduce_angular, 20, sizeof(cl_mem), &d_flux_out[3]);
+        err |= clSetKernelArg(k_reduce_angular, 21, sizeof(cl_mem), &d_flux_out[4]);
+        err |= clSetKernelArg(k_reduce_angular, 22, sizeof(cl_mem), &d_flux_out[5]);
+        err |= clSetKernelArg(k_reduce_angular, 23, sizeof(cl_mem), &d_flux_out[6]);
+        err |= clSetKernelArg(k_reduce_angular, 24, sizeof(cl_mem), &d_flux_out[7]);
+    }
 
     err |= clSetKernelArg(k_reduce_angular, 25, sizeof(cl_mem), &d_time_delta);
     err |= clSetKernelArg(k_reduce_angular, 26, sizeof(cl_mem), &d_scalar_flux);
@@ -60,13 +83,12 @@ void reduce_angular_cells(void)
     // Set the local size to the maximum allowed.
     size_t size;
     err = clGetKernelWorkGroupInfo(k_reduce_angular_cell, device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &size, NULL);
-    printf("size of kernel %d\n", size);
     check_error(err, "Getting max work group size for kernel/device");
 
     // Do naive reduction if too small
     if (size < nang)
     {
-        printf("Warning: using naive reduction");
+        printf("Warning: using naive reduction\n");
         ocl_scalar_flux_();
         return;
     }
@@ -92,23 +114,46 @@ void reduce_angular_cells(void)
     err |= clSetKernelArg(k_reduce_angular_cell, 11, sizeof(cl_mem), &d_weights);
     err |= clSetKernelArg(k_reduce_angular_cell, 12, sizeof(cl_mem), &d_scat_coeff);
 
-    err |= clSetKernelArg(k_reduce_angular_cell, 13, sizeof(cl_mem), &d_flux_out[0]);
-    err |= clSetKernelArg(k_reduce_angular_cell, 14, sizeof(cl_mem), &d_flux_out[1]);
-    err |= clSetKernelArg(k_reduce_angular_cell, 15, sizeof(cl_mem), &d_flux_out[2]);
-    err |= clSetKernelArg(k_reduce_angular_cell, 16, sizeof(cl_mem), &d_flux_out[3]);
-    err |= clSetKernelArg(k_reduce_angular_cell, 17, sizeof(cl_mem), &d_flux_out[4]);
-    err |= clSetKernelArg(k_reduce_angular_cell, 18, sizeof(cl_mem), &d_flux_out[5]);
-    err |= clSetKernelArg(k_reduce_angular_cell, 19, sizeof(cl_mem), &d_flux_out[6]);
-    err |= clSetKernelArg(k_reduce_angular_cell, 20, sizeof(cl_mem), &d_flux_out[7]);
+    if (global_timestep % 2 == 0)
+    {
+        err |= clSetKernelArg(k_reduce_angular_cell, 13, sizeof(cl_mem), &d_flux_out[0]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 14, sizeof(cl_mem), &d_flux_out[1]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 15, sizeof(cl_mem), &d_flux_out[2]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 16, sizeof(cl_mem), &d_flux_out[3]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 17, sizeof(cl_mem), &d_flux_out[4]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 18, sizeof(cl_mem), &d_flux_out[5]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 19, sizeof(cl_mem), &d_flux_out[6]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 20, sizeof(cl_mem), &d_flux_out[7]);
 
-    err |= clSetKernelArg(k_reduce_angular_cell, 21, sizeof(cl_mem), &d_flux_in[0]);
-    err |= clSetKernelArg(k_reduce_angular_cell, 22, sizeof(cl_mem), &d_flux_in[1]);
-    err |= clSetKernelArg(k_reduce_angular_cell, 23, sizeof(cl_mem), &d_flux_in[2]);
-    err |= clSetKernelArg(k_reduce_angular_cell, 24, sizeof(cl_mem), &d_flux_in[3]);
-    err |= clSetKernelArg(k_reduce_angular_cell, 25, sizeof(cl_mem), &d_flux_in[4]);
-    err |= clSetKernelArg(k_reduce_angular_cell, 26, sizeof(cl_mem), &d_flux_in[5]);
-    err |= clSetKernelArg(k_reduce_angular_cell, 27, sizeof(cl_mem), &d_flux_in[6]);
-    err |= clSetKernelArg(k_reduce_angular_cell, 28, sizeof(cl_mem), &d_flux_in[7]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 21, sizeof(cl_mem), &d_flux_in[0]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 22, sizeof(cl_mem), &d_flux_in[1]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 23, sizeof(cl_mem), &d_flux_in[2]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 24, sizeof(cl_mem), &d_flux_in[3]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 25, sizeof(cl_mem), &d_flux_in[4]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 26, sizeof(cl_mem), &d_flux_in[5]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 27, sizeof(cl_mem), &d_flux_in[6]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 28, sizeof(cl_mem), &d_flux_in[7]);
+    }
+    else
+    {
+        err |= clSetKernelArg(k_reduce_angular_cell, 13, sizeof(cl_mem), &d_flux_in[0]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 14, sizeof(cl_mem), &d_flux_in[1]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 15, sizeof(cl_mem), &d_flux_in[2]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 16, sizeof(cl_mem), &d_flux_in[3]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 17, sizeof(cl_mem), &d_flux_in[4]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 18, sizeof(cl_mem), &d_flux_in[5]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 19, sizeof(cl_mem), &d_flux_in[6]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 20, sizeof(cl_mem), &d_flux_in[7]);
+
+        err |= clSetKernelArg(k_reduce_angular_cell, 21, sizeof(cl_mem), &d_flux_out[0]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 22, sizeof(cl_mem), &d_flux_out[1]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 23, sizeof(cl_mem), &d_flux_out[2]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 24, sizeof(cl_mem), &d_flux_out[3]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 25, sizeof(cl_mem), &d_flux_out[4]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 26, sizeof(cl_mem), &d_flux_out[5]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 27, sizeof(cl_mem), &d_flux_out[6]);
+        err |= clSetKernelArg(k_reduce_angular_cell, 28, sizeof(cl_mem), &d_flux_out[7]);
+    }
 
     err |= clSetKernelArg(k_reduce_angular_cell, 29, sizeof(cl_mem), &d_time_delta);
     err |= clSetKernelArg(k_reduce_angular_cell, 30, sizeof(cl_mem), &d_scalar_flux);
