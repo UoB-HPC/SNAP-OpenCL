@@ -285,6 +285,23 @@ SUBROUTINE translv
 
   WRITE ( *, 217 ) ( t7-t1 )
 
+
+!_______________________________________________________________________
+!
+!   Check angular flux difference
+!_______________________________________________________________________
+
+  CALL get_output_flux ( ocl_angular_flux )
+  PRINT *
+  PRINT *, "Checking angular flux"
+  PRINT *, "Max difference out:", MAXVAL ( ABS ( ptr_out-ocl_angular_flux ) )
+  PRINT *, "Max difference in:", MAXVAL ( ABS ( ptr_in-ocl_angular_flux ) )
+  PRINT *
+
+  PRINT *, "OCL SUM", SUM ( ocl_angular_flux )
+  PRINT *, "ORIG SUM", SUM ( ptr_out )
+
+
 !_______________________________________________________________________
 !
 !   Check that scalar and scalar moment fluxes match
