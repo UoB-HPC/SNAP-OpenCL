@@ -20,8 +20,23 @@
 #define scalar(i,j,k,g) scalar[(i)+(nx*(j))+(nx*ny*(k))+(nx*ny*nz*(g))]
 #define weights(a) weights[(a)]
 
-#define angular(a,g,i,j,k,o) angular##o[(a)+(nang*(g))+(nang*ng*(i))+(nang*ng*nx*(j))+(nang*ng*nx*ny*(k))]
-#define angular_prev(a,g,i,j,k,o) angular_prev##o[(a)+(nang*(g))+(nang*ng*(i))+(nang*ng*nx*(j))+(nang*ng*nx*ny*(k))]
+#define angular0(a,g,i,j,k) angular0[(a)+(nang*(g))+(nang*ng*(i))+(nang*ng*nx*(j))+(nang*ng*nx*ny*(k))]
+#define angular1(a,g,i,j,k) angular1[(a)+(nang*(g))+(nang*ng*(i))+(nang*ng*nx*(j))+(nang*ng*nx*ny*(k))]
+#define angular2(a,g,i,j,k) angular2[(a)+(nang*(g))+(nang*ng*(i))+(nang*ng*nx*(j))+(nang*ng*nx*ny*(k))]
+#define angular3(a,g,i,j,k) angular3[(a)+(nang*(g))+(nang*ng*(i))+(nang*ng*nx*(j))+(nang*ng*nx*ny*(k))]
+#define angular4(a,g,i,j,k) angular4[(a)+(nang*(g))+(nang*ng*(i))+(nang*ng*nx*(j))+(nang*ng*nx*ny*(k))]
+#define angular5(a,g,i,j,k) angular5[(a)+(nang*(g))+(nang*ng*(i))+(nang*ng*nx*(j))+(nang*ng*nx*ny*(k))]
+#define angular6(a,g,i,j,k) angular6[(a)+(nang*(g))+(nang*ng*(i))+(nang*ng*nx*(j))+(nang*ng*nx*ny*(k))]
+#define angular7(a,g,i,j,k) angular7[(a)+(nang*(g))+(nang*ng*(i))+(nang*ng*nx*(j))+(nang*ng*nx*ny*(k))]
+
+#define angular_prev0(a,g,i,j,k) angular_prev0[(a)+(nang*(g))+(nang*ng*(i))+(nang*ng*nx*(j))+(nang*ng*nx*ny*(k))]
+#define angular_prev1(a,g,i,j,k) angular_prev1[(a)+(nang*(g))+(nang*ng*(i))+(nang*ng*nx*(j))+(nang*ng*nx*ny*(k))]
+#define angular_prev2(a,g,i,j,k) angular_prev2[(a)+(nang*(g))+(nang*ng*(i))+(nang*ng*nx*(j))+(nang*ng*nx*ny*(k))]
+#define angular_prev3(a,g,i,j,k) angular_prev3[(a)+(nang*(g))+(nang*ng*(i))+(nang*ng*nx*(j))+(nang*ng*nx*ny*(k))]
+#define angular_prev4(a,g,i,j,k) angular_prev4[(a)+(nang*(g))+(nang*ng*(i))+(nang*ng*nx*(j))+(nang*ng*nx*ny*(k))]
+#define angular_prev5(a,g,i,j,k) angular_prev5[(a)+(nang*(g))+(nang*ng*(i))+(nang*ng*nx*(j))+(nang*ng*nx*ny*(k))]
+#define angular_prev6(a,g,i,j,k) angular_prev6[(a)+(nang*(g))+(nang*ng*(i))+(nang*ng*nx*(j))+(nang*ng*nx*ny*(k))]
+#define angular_prev7(a,g,i,j,k) angular_prev7[(a)+(nang*(g))+(nang*ng*(i))+(nang*ng*nx*(j))+(nang*ng*nx*ny*(k))]
 
 #define velocity(g) velocity[(g)]
 
@@ -246,46 +261,46 @@ __kernel void reduce_angular(
             // Note all work items will all take the same branch
             if (time_delta(g) != 0.0)
             {
-                tot_g += weights(a) * (0.5 * (angular(a,g,i,j,k,0) + angular_prev(a,g,i,j,k,0)));
-                tot_g += weights(a) * (0.5 * (angular(a,g,i,j,k,1) + angular_prev(a,g,i,j,k,1)));
-                tot_g += weights(a) * (0.5 * (angular(a,g,i,j,k,2) + angular_prev(a,g,i,j,k,2)));
-                tot_g += weights(a) * (0.5 * (angular(a,g,i,j,k,3) + angular_prev(a,g,i,j,k,3)));
-                tot_g += weights(a) * (0.5 * (angular(a,g,i,j,k,4) + angular_prev(a,g,i,j,k,4)));
-                tot_g += weights(a) * (0.5 * (angular(a,g,i,j,k,5) + angular_prev(a,g,i,j,k,5)));
-                tot_g += weights(a) * (0.5 * (angular(a,g,i,j,k,6) + angular_prev(a,g,i,j,k,6)));
-                tot_g += weights(a) * (0.5 * (angular(a,g,i,j,k,7) + angular_prev(a,g,i,j,k,7)));
+                tot_g += weights(a) * (0.5 * (angular0(a,g,i,j,k) + angular_prev0(a,g,i,j,k)));
+                tot_g += weights(a) * (0.5 * (angular1(a,g,i,j,k) + angular_prev1(a,g,i,j,k)));
+                tot_g += weights(a) * (0.5 * (angular2(a,g,i,j,k) + angular_prev2(a,g,i,j,k)));
+                tot_g += weights(a) * (0.5 * (angular3(a,g,i,j,k) + angular_prev3(a,g,i,j,k)));
+                tot_g += weights(a) * (0.5 * (angular4(a,g,i,j,k) + angular_prev4(a,g,i,j,k)));
+                tot_g += weights(a) * (0.5 * (angular5(a,g,i,j,k) + angular_prev5(a,g,i,j,k)));
+                tot_g += weights(a) * (0.5 * (angular6(a,g,i,j,k) + angular_prev6(a,g,i,j,k)));
+                tot_g += weights(a) * (0.5 * (angular7(a,g,i,j,k) + angular_prev7(a,g,i,j,k)));
                 for (unsigned int l = 0; l < (cmom-1); l++)
                 {
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,0) * weights(a) * (0.5 * (angular(a,g,i,j,k,0) + angular_prev(a,g,i,j,k,0)));
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,1) * weights(a) * (0.5 * (angular(a,g,i,j,k,1) + angular_prev(a,g,i,j,k,1)));
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,2) * weights(a) * (0.5 * (angular(a,g,i,j,k,2) + angular_prev(a,g,i,j,k,2)));
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,3) * weights(a) * (0.5 * (angular(a,g,i,j,k,3) + angular_prev(a,g,i,j,k,3)));
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,4) * weights(a) * (0.5 * (angular(a,g,i,j,k,4) + angular_prev(a,g,i,j,k,4)));
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,5) * weights(a) * (0.5 * (angular(a,g,i,j,k,5) + angular_prev(a,g,i,j,k,5)));
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,6) * weights(a) * (0.5 * (angular(a,g,i,j,k,6) + angular_prev(a,g,i,j,k,6)));
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,7) * weights(a) * (0.5 * (angular(a,g,i,j,k,7) + angular_prev(a,g,i,j,k,7)));
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,0) * weights(a) * (0.5 * (angular0(a,g,i,j,k) + angular_prev0(a,g,i,j,k)));
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,1) * weights(a) * (0.5 * (angular1(a,g,i,j,k) + angular_prev1(a,g,i,j,k)));
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,2) * weights(a) * (0.5 * (angular2(a,g,i,j,k) + angular_prev2(a,g,i,j,k)));
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,3) * weights(a) * (0.5 * (angular3(a,g,i,j,k) + angular_prev3(a,g,i,j,k)));
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,4) * weights(a) * (0.5 * (angular4(a,g,i,j,k) + angular_prev4(a,g,i,j,k)));
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,5) * weights(a) * (0.5 * (angular5(a,g,i,j,k) + angular_prev5(a,g,i,j,k)));
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,6) * weights(a) * (0.5 * (angular6(a,g,i,j,k) + angular_prev6(a,g,i,j,k)));
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,7) * weights(a) * (0.5 * (angular7(a,g,i,j,k) + angular_prev7(a,g,i,j,k)));
                 }
             }
             else
             {
-                tot_g += weights(a) * angular(a,g,i,j,k,0);
-                tot_g += weights(a) * angular(a,g,i,j,k,1);
-                tot_g += weights(a) * angular(a,g,i,j,k,2);
-                tot_g += weights(a) * angular(a,g,i,j,k,3);
-                tot_g += weights(a) * angular(a,g,i,j,k,4);
-                tot_g += weights(a) * angular(a,g,i,j,k,5);
-                tot_g += weights(a) * angular(a,g,i,j,k,6);
-                tot_g += weights(a) * angular(a,g,i,j,k,7);
+                tot_g += weights(a) * angular0(a,g,i,j,k);
+                tot_g += weights(a) * angular1(a,g,i,j,k);
+                tot_g += weights(a) * angular2(a,g,i,j,k);
+                tot_g += weights(a) * angular3(a,g,i,j,k);
+                tot_g += weights(a) * angular4(a,g,i,j,k);
+                tot_g += weights(a) * angular5(a,g,i,j,k);
+                tot_g += weights(a) * angular6(a,g,i,j,k);
+                tot_g += weights(a) * angular7(a,g,i,j,k);
                 for (unsigned int l = 0; l < (cmom-1); l++)
                 {
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,0) * weights(a) * angular(a,g,i,j,k,0);
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,1) * weights(a) * angular(a,g,i,j,k,1);
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,2) * weights(a) * angular(a,g,i,j,k,2);
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,3) * weights(a) * angular(a,g,i,j,k,3);
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,4) * weights(a) * angular(a,g,i,j,k,4);
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,5) * weights(a) * angular(a,g,i,j,k,5);
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,6) * weights(a) * angular(a,g,i,j,k,6);
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,7) * weights(a) * angular(a,g,i,j,k,7);
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,0) * weights(a) * angular0(a,g,i,j,k);
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,1) * weights(a) * angular1(a,g,i,j,k);
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,2) * weights(a) * angular2(a,g,i,j,k);
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,3) * weights(a) * angular3(a,g,i,j,k);
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,4) * weights(a) * angular4(a,g,i,j,k);
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,5) * weights(a) * angular5(a,g,i,j,k);
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,6) * weights(a) * angular6(a,g,i,j,k);
+                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,7) * weights(a) * angular7(a,g,i,j,k);
                 }
             }
         }
@@ -346,32 +361,32 @@ __kernel void reduce_angular_cell(
     {
         if (time_delta(g) != 0.0)
         {
-            scratch[a] = weights(a) * (0.5 * (angular(a,g,i,j,k,0) + angular_prev(a,g,i,j,k,0)));
-            scratch[a] += weights(a) * (0.5 * (angular(a,g,i,j,k,1) + angular_prev(a,g,i,j,k,1)));
-            scratch[a] += weights(a) * (0.5 * (angular(a,g,i,j,k,2) + angular_prev(a,g,i,j,k,2)));
-            scratch[a] += weights(a) * (0.5 * (angular(a,g,i,j,k,3) + angular_prev(a,g,i,j,k,3)));
-            scratch[a] += weights(a) * (0.5 * (angular(a,g,i,j,k,4) + angular_prev(a,g,i,j,k,4)));
-            scratch[a] += weights(a) * (0.5 * (angular(a,g,i,j,k,5) + angular_prev(a,g,i,j,k,5)));
-            scratch[a] += weights(a) * (0.5 * (angular(a,g,i,j,k,6) + angular_prev(a,g,i,j,k,6)));
-            scratch[a] += weights(a) * (0.5 * (angular(a,g,i,j,k,7) + angular_prev(a,g,i,j,k,7)));
+            scratch[a] = weights(a) * (0.5 * (angular0(a,g,i,j,k) + angular_prev0(a,g,i,j,k)));
+            scratch[a] += weights(a) * (0.5 * (angular1(a,g,i,j,k) + angular_prev1(a,g,i,j,k)));
+            scratch[a] += weights(a) * (0.5 * (angular2(a,g,i,j,k) + angular_prev2(a,g,i,j,k)));
+            scratch[a] += weights(a) * (0.5 * (angular3(a,g,i,j,k) + angular_prev3(a,g,i,j,k)));
+            scratch[a] += weights(a) * (0.5 * (angular4(a,g,i,j,k) + angular_prev4(a,g,i,j,k)));
+            scratch[a] += weights(a) * (0.5 * (angular5(a,g,i,j,k) + angular_prev5(a,g,i,j,k)));
+            scratch[a] += weights(a) * (0.5 * (angular6(a,g,i,j,k) + angular_prev6(a,g,i,j,k)));
+            scratch[a] += weights(a) * (0.5 * (angular7(a,g,i,j,k) + angular_prev7(a,g,i,j,k)));
         }
         else
         {
-            scratch[a] = weights(a) * angular(a,g,i,j,k,0);
-            scratch[a] += weights(a) * angular(a,g,i,j,k,1);
-            scratch[a] += weights(a) * angular(a,g,i,j,k,2);
-            scratch[a] += weights(a) * angular(a,g,i,j,k,3);
-            scratch[a] += weights(a) * angular(a,g,i,j,k,4);
-            scratch[a] += weights(a) * angular(a,g,i,j,k,5);
-            scratch[a] += weights(a) * angular(a,g,i,j,k,6);
-            scratch[a] += weights(a) * angular(a,g,i,j,k,7);
+            scratch[a] = weights(a) * angular0(a,g,i,j,k);
+            scratch[a] += weights(a) * angular1(a,g,i,j,k);
+            scratch[a] += weights(a) * angular2(a,g,i,j,k);
+            scratch[a] += weights(a) * angular3(a,g,i,j,k);
+            scratch[a] += weights(a) * angular4(a,g,i,j,k);
+            scratch[a] += weights(a) * angular5(a,g,i,j,k);
+            scratch[a] += weights(a) * angular6(a,g,i,j,k);
+            scratch[a] += weights(a) * angular7(a,g,i,j,k);
         }
     }
 
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
 
     // Reduce in local memory
-    for (int offset = get_local_size(0) / 2; offset > 0; offset >>= 1)
+    for (unsigned int offset = get_local_size(0) / 2; offset > 0; offset >>= 1)
     {
         if (a < offset)
         {
