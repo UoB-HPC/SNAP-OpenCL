@@ -239,9 +239,17 @@ void copy_to_device_(
 // Copy the scalar flux value back to the host
 void get_scalar_flux_(double *scalar)
 {
+    double *tmp = malloc(sizeof(double)*nx*ny*nz*ng);
     cl_int err;
-    err = clEnqueueReadBuffer(queue[0], d_scalar_flux, CL_TRUE, 0, sizeof(double)*nx*ny*nz*ng, scalar, 0, NULL, NULL);
+    err = clEnqueueReadBuffer(queue[0], d_scalar_flux, CL_TRUE, 0, sizeof(double)*nx*ny*nz*ng, tmp, 0, NULL, NULL);
     check_error(err, "Enqueue read scalar_flux buffer");
+    for (unsigned int g = 0; g < ng; g++)
+        for (unsigned int i = 0; i < nx; i++)
+            for (unsigned int j = 0; j < ny; j++)
+                for (unsigned int k = 0; k < nz; k++)
+                    scalar[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)] = tmp[g+(ng*i)+(ng*nx*j)+(ng*nx*ny*k)];
+
+    free(tmp);
 }
 
 void get_scalar_flux_moments_(double *scalar_moments)

@@ -17,7 +17,7 @@
 #define scat_coef(a,m,o) scat_coef[(a)+(nang*(m))+(nang*cmom*(o))]
 #define time_delta(g) time_delta[(g)]
 #define total_cross_section(g,i,j,k) total_cross_section[(g)+(ng*(i))+(ng*nx*(j))+(ng*nx*ny*(k))]
-#define scalar(i,j,k,g) scalar[(i)+(nx*(j))+(nx*ny*(k))+(nx*ny*nz*(g))]
+#define scalar(g,i,j,k) scalar[(g)+(ng*(i))+(ng*nx*(j))+(ng*nx*ny*(k))]
 #define weights(a) weights[(a)]
 
 #define angular0(a,g,i,j,k) angular0[(a)+(nang*(g))+(nang*ng*(i))+(nang*ng*nx*(j))+(nang*ng*nx*ny*(k))]
@@ -304,7 +304,7 @@ __kernel void reduce_angular(
                 }
             }
         }
-        scalar(i,j,k,g) = tot_g;
+        scalar(g,i,j,k) = tot_g;
     }
 }
 
@@ -395,7 +395,7 @@ __kernel void reduce_angular_cell(
     }
     // Save result
     if (a == 0)
-        scalar(i,j,k,g) = scratch[0];
+        scalar(g,i,j,k) = scratch[0];
 }
 
 // Reduce the flux moments for a single cell
@@ -634,7 +634,7 @@ __kernel void calc_outer_source(
             if (g1 == g2)
                 continue;
 
-            g2g_source(0,i,j,k,g1) += gg_cs(map(i,j,k)-1,0,g2,g1) * scalar(i,j,k,g2);
+            g2g_source(0,i,j,k,g1) += gg_cs(map(i,j,k)-1,0,g2,g1) * scalar(g2,i,j,k);
 
             unsigned int mom = 1;
             for (unsigned int l = 1; l < nmom; l++)
@@ -673,7 +673,7 @@ __kernel void calc_inner_source(
 
     for (unsigned int g = 0; g < ng; g++)
     {
-        source(0,i,j,k,g) = g2g_source(0,i,j,k,g) + scat_cs(0,i,j,k,g) * scalar(i,j,k,g);
+        source(0,i,j,k,g) = g2g_source(0,i,j,k,g) + scat_cs(0,i,j,k,g) * scalar(g,i,j,k);
         unsigned int mom = 1;
         for (unsigned int l = 1; l < nmom; l++)
         {
