@@ -197,8 +197,8 @@ void reduce_moments_cells(void)
     size_t power = 1 << (unsigned int)ceil(log2((double)nang));
     if (power < size) size = power;
 
-    const size_t global[1] = {size * ng, nx*ny*nz};
-    const size_t local[1] = {size, 1};
+    const size_t global[1] = {size * ng};
+    const size_t local[1] = {size};
 
     err = clSetKernelArg(k_reduce_moments_cell, 0, sizeof(unsigned int), &nx);
     err |= clSetKernelArg(k_reduce_moments_cell, 1, sizeof(unsigned int), &ny);
@@ -208,67 +208,58 @@ void reduce_moments_cells(void)
     err |= clSetKernelArg(k_reduce_moments_cell, 5, sizeof(unsigned int), &noct);
     err |= clSetKernelArg(k_reduce_moments_cell, 6, sizeof(unsigned int), &cmom);
 
-    err |= clSetKernelArg(k_reduce_moments_cell, 10, sizeof(double)*size, NULL);
+    err |= clSetKernelArg(k_reduce_moments_cell, 7, sizeof(double)*size, NULL);
 
 
-    err |= clSetKernelArg(k_reduce_moments_cell, 11, sizeof(cl_mem), &d_weights);
-    err |= clSetKernelArg(k_reduce_moments_cell, 12, sizeof(cl_mem), &d_scat_coeff);
+    err |= clSetKernelArg(k_reduce_moments_cell, 8, sizeof(cl_mem), &d_weights);
+    err |= clSetKernelArg(k_reduce_moments_cell, 9, sizeof(cl_mem), &d_scat_coeff);
 
     if (global_timestep % 2 == 0)
     {
-        err |= clSetKernelArg(k_reduce_moments_cell, 13, sizeof(cl_mem), &d_flux_out[0]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 14, sizeof(cl_mem), &d_flux_out[1]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 15, sizeof(cl_mem), &d_flux_out[2]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 16, sizeof(cl_mem), &d_flux_out[3]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 17, sizeof(cl_mem), &d_flux_out[4]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 18, sizeof(cl_mem), &d_flux_out[5]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 19, sizeof(cl_mem), &d_flux_out[6]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 20, sizeof(cl_mem), &d_flux_out[7]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 10, sizeof(cl_mem), &d_flux_out[0]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 11, sizeof(cl_mem), &d_flux_out[1]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 12, sizeof(cl_mem), &d_flux_out[2]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 13, sizeof(cl_mem), &d_flux_out[3]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 14, sizeof(cl_mem), &d_flux_out[4]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 15, sizeof(cl_mem), &d_flux_out[5]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 16, sizeof(cl_mem), &d_flux_out[6]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 17, sizeof(cl_mem), &d_flux_out[7]);
 
-        err |= clSetKernelArg(k_reduce_moments_cell, 21, sizeof(cl_mem), &d_flux_in[0]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 22, sizeof(cl_mem), &d_flux_in[1]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 23, sizeof(cl_mem), &d_flux_in[2]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 24, sizeof(cl_mem), &d_flux_in[3]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 25, sizeof(cl_mem), &d_flux_in[4]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 26, sizeof(cl_mem), &d_flux_in[5]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 27, sizeof(cl_mem), &d_flux_in[6]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 28, sizeof(cl_mem), &d_flux_in[7]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 18, sizeof(cl_mem), &d_flux_in[0]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 19, sizeof(cl_mem), &d_flux_in[1]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 20, sizeof(cl_mem), &d_flux_in[2]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 21, sizeof(cl_mem), &d_flux_in[3]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 22, sizeof(cl_mem), &d_flux_in[4]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 23, sizeof(cl_mem), &d_flux_in[5]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 24, sizeof(cl_mem), &d_flux_in[6]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 25, sizeof(cl_mem), &d_flux_in[7]);
     }
     else
     {
-        err |= clSetKernelArg(k_reduce_moments_cell, 13, sizeof(cl_mem), &d_flux_in[0]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 14, sizeof(cl_mem), &d_flux_in[1]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 15, sizeof(cl_mem), &d_flux_in[2]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 16, sizeof(cl_mem), &d_flux_in[3]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 17, sizeof(cl_mem), &d_flux_in[4]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 18, sizeof(cl_mem), &d_flux_in[5]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 19, sizeof(cl_mem), &d_flux_in[6]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 20, sizeof(cl_mem), &d_flux_in[7]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 10, sizeof(cl_mem), &d_flux_in[0]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 11, sizeof(cl_mem), &d_flux_in[1]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 12, sizeof(cl_mem), &d_flux_in[2]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 13, sizeof(cl_mem), &d_flux_in[3]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 14, sizeof(cl_mem), &d_flux_in[4]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 15, sizeof(cl_mem), &d_flux_in[5]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 16, sizeof(cl_mem), &d_flux_in[6]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 17, sizeof(cl_mem), &d_flux_in[7]);
 
-        err |= clSetKernelArg(k_reduce_moments_cell, 21, sizeof(cl_mem), &d_flux_out[0]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 22, sizeof(cl_mem), &d_flux_out[1]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 23, sizeof(cl_mem), &d_flux_out[2]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 24, sizeof(cl_mem), &d_flux_out[3]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 25, sizeof(cl_mem), &d_flux_out[4]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 26, sizeof(cl_mem), &d_flux_out[5]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 27, sizeof(cl_mem), &d_flux_out[6]);
-        err |= clSetKernelArg(k_reduce_moments_cell, 28, sizeof(cl_mem), &d_flux_out[7]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 18, sizeof(cl_mem), &d_flux_out[0]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 19, sizeof(cl_mem), &d_flux_out[1]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 20, sizeof(cl_mem), &d_flux_out[2]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 21, sizeof(cl_mem), &d_flux_out[3]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 22, sizeof(cl_mem), &d_flux_out[4]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 23, sizeof(cl_mem), &d_flux_out[5]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 24, sizeof(cl_mem), &d_flux_out[6]);
+        err |= clSetKernelArg(k_reduce_moments_cell, 25, sizeof(cl_mem), &d_flux_out[7]);
     }
 
-    err |= clSetKernelArg(k_reduce_moments_cell, 29, sizeof(cl_mem), &d_time_delta);
-    err |= clSetKernelArg(k_reduce_moments_cell, 30, sizeof(cl_mem), &d_scalar_mom);
+    err |= clSetKernelArg(k_reduce_moments_cell, 26, sizeof(cl_mem), &d_time_delta);
+    err |= clSetKernelArg(k_reduce_moments_cell, 27, sizeof(cl_mem), &d_scalar_mom);
     check_error(err, "Setting reduce_moments_cell kernel arguments");
 
-    for (unsigned int i = 0; i < nx; i++)
-        for (unsigned int j = 0; j < ny; j++)
-            for (unsigned int k = 0; k < nz; k++)
-            {
-                err = clSetKernelArg(k_reduce_moments_cell, 7, sizeof(unsigned int), &i);
-                err |= clSetKernelArg(k_reduce_moments_cell, 8, sizeof(unsigned int), &j);
-                err |= clSetKernelArg(k_reduce_moments_cell, 9, sizeof(unsigned int), &k);
-                check_error(err, "Setting reduce_moments_cell kernel arguments ijk");
-                err = clEnqueueNDRangeKernel(queue[0], k_reduce_moments_cell, 1, 0, global, local, 0, NULL, NULL);
-                check_error(err, "Enqueue reduce_moments_cell kernel");
-            }
+    err = clEnqueueNDRangeKernel(queue[0], k_reduce_moments_cell, 1, 0, global, local, 0, NULL, NULL);
+    check_error(err, "Enqueue reduce_moments_cell kernel");
 
 }

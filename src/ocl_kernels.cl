@@ -410,10 +410,6 @@ __kernel void reduce_moments_cell(
     const unsigned int noct,
     const unsigned int cmom,
 
-    const unsigned int i,
-    const unsigned int j,
-    const unsigned int k,
-
     __local double * restrict scratch,
 
     __global const double * restrict weights,
@@ -444,51 +440,54 @@ __kernel void reduce_moments_cell(
     const unsigned int a = get_local_id(0);
     const unsigned int g = get_group_id(0);
 
-    for (unsigned int l = 0; l < cmom-1; l++)
-    {
-        // Load into local memory
-        scratch[a] = 0.0;
-        if (a < nang)
-        {
-            if (time_delta(g) != 0.0)
-            {
-                scratch[a] += scat_coef(a,l+1,0) * weights(a) * (0.5 * (angular0(a,g,i,j,k) + angular_prev0(a,g,i,j,k)));
-                scratch[a] += scat_coef(a,l+1,1) * weights(a) * (0.5 * (angular1(a,g,i,j,k) + angular_prev1(a,g,i,j,k)));
-                scratch[a] += scat_coef(a,l+1,2) * weights(a) * (0.5 * (angular2(a,g,i,j,k) + angular_prev2(a,g,i,j,k)));
-                scratch[a] += scat_coef(a,l+1,3) * weights(a) * (0.5 * (angular3(a,g,i,j,k) + angular_prev3(a,g,i,j,k)));
-                scratch[a] += scat_coef(a,l+1,4) * weights(a) * (0.5 * (angular4(a,g,i,j,k) + angular_prev4(a,g,i,j,k)));
-                scratch[a] += scat_coef(a,l+1,5) * weights(a) * (0.5 * (angular5(a,g,i,j,k) + angular_prev5(a,g,i,j,k)));
-                scratch[a] += scat_coef(a,l+1,6) * weights(a) * (0.5 * (angular6(a,g,i,j,k) + angular_prev6(a,g,i,j,k)));
-                scratch[a] += scat_coef(a,l+1,7) * weights(a) * (0.5 * (angular7(a,g,i,j,k) + angular_prev7(a,g,i,j,k)));
-            }
-            else
-            {
-                scratch[a] += scat_coef(a,l+1,0) * weights(a) * angular0(a,g,i,j,k);
-                scratch[a] += scat_coef(a,l+1,1) * weights(a) * angular1(a,g,i,j,k);
-                scratch[a] += scat_coef(a,l+1,2) * weights(a) * angular2(a,g,i,j,k);
-                scratch[a] += scat_coef(a,l+1,3) * weights(a) * angular3(a,g,i,j,k);
-                scratch[a] += scat_coef(a,l+1,4) * weights(a) * angular4(a,g,i,j,k);
-                scratch[a] += scat_coef(a,l+1,5) * weights(a) * angular5(a,g,i,j,k);
-                scratch[a] += scat_coef(a,l+1,6) * weights(a) * angular6(a,g,i,j,k);
-                scratch[a] += scat_coef(a,l+1,7) * weights(a) * angular7(a,g,i,j,k);
-            }
-        }
+    for (unsigned int k = 0; k < nz; k++)
+        for (unsigned int j = 0; j < ny; j++)
+            for (unsigned int i = 0; i < nx; i++)
+                for (unsigned int l = 0; l < cmom-1; l++)
+                {
+                    // Load into local memory
+                    scratch[a] = 0.0;
+                    if (a < nang)
+                    {
+                        if (time_delta(g) != 0.0)
+                        {
+                            scratch[a] += scat_coef(a,l+1,0) * weights(a) * (0.5 * (angular0(a,g,i,j,k) + angular_prev0(a,g,i,j,k)));
+                            scratch[a] += scat_coef(a,l+1,1) * weights(a) * (0.5 * (angular1(a,g,i,j,k) + angular_prev1(a,g,i,j,k)));
+                            scratch[a] += scat_coef(a,l+1,2) * weights(a) * (0.5 * (angular2(a,g,i,j,k) + angular_prev2(a,g,i,j,k)));
+                            scratch[a] += scat_coef(a,l+1,3) * weights(a) * (0.5 * (angular3(a,g,i,j,k) + angular_prev3(a,g,i,j,k)));
+                            scratch[a] += scat_coef(a,l+1,4) * weights(a) * (0.5 * (angular4(a,g,i,j,k) + angular_prev4(a,g,i,j,k)));
+                            scratch[a] += scat_coef(a,l+1,5) * weights(a) * (0.5 * (angular5(a,g,i,j,k) + angular_prev5(a,g,i,j,k)));
+                            scratch[a] += scat_coef(a,l+1,6) * weights(a) * (0.5 * (angular6(a,g,i,j,k) + angular_prev6(a,g,i,j,k)));
+                            scratch[a] += scat_coef(a,l+1,7) * weights(a) * (0.5 * (angular7(a,g,i,j,k) + angular_prev7(a,g,i,j,k)));
+                        }
+                        else
+                        {
+                            scratch[a] += scat_coef(a,l+1,0) * weights(a) * angular0(a,g,i,j,k);
+                            scratch[a] += scat_coef(a,l+1,1) * weights(a) * angular1(a,g,i,j,k);
+                            scratch[a] += scat_coef(a,l+1,2) * weights(a) * angular2(a,g,i,j,k);
+                            scratch[a] += scat_coef(a,l+1,3) * weights(a) * angular3(a,g,i,j,k);
+                            scratch[a] += scat_coef(a,l+1,4) * weights(a) * angular4(a,g,i,j,k);
+                            scratch[a] += scat_coef(a,l+1,5) * weights(a) * angular5(a,g,i,j,k);
+                            scratch[a] += scat_coef(a,l+1,6) * weights(a) * angular6(a,g,i,j,k);
+                            scratch[a] += scat_coef(a,l+1,7) * weights(a) * angular7(a,g,i,j,k);
+                        }
+                    }
 
-        barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
+                    barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
 
-        // Reduce in local memory
-        for (unsigned int offset = get_local_size(0) / 2; offset > 0; offset >>= 1)
-        {
-            if (a < offset)
-            {
-                scratch[a] += scratch[a + offset];
-            }
-            barrier(CLK_LOCAL_MEM_FENCE);
-        }
-        // Save result
-        if (a == 0)
-            scalar_mom(g,l,i,j,k) = scratch[0];
-    }
+                    // Reduce in local memory
+                    for (unsigned int offset = get_local_size(0) / 2; offset > 0; offset >>= 1)
+                    {
+                        if (a < offset)
+                        {
+                            scratch[a] += scratch[a + offset];
+                        }
+                        barrier(CLK_LOCAL_MEM_FENCE);
+                    }
+                    // Save result
+                    if (a == 0)
+                        scalar_mom(g,l,i,j,k) = scratch[0];
+                }
 }
 
 // Calculate the inverted denominator for all the energy groups
