@@ -197,8 +197,8 @@ void reduce_moments_cells(void)
     size_t power = 1 << (unsigned int)ceil(log2((double)nang));
     if (power < size) size = power;
 
-    const size_t global[1] = {size * ng};
-    const size_t local[1] = {size};
+    const size_t global[1] = {size * ng, nx*ny*nz};
+    const size_t local[1] = {size, 1};
 
     err = clSetKernelArg(k_reduce_moments_cell, 0, sizeof(unsigned int), &nx);
     err |= clSetKernelArg(k_reduce_moments_cell, 1, sizeof(unsigned int), &ny);

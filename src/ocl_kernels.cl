@@ -47,7 +47,7 @@
 #define fixed_source(i,j,k,g) fixed_source[(i)+(nx*(j))+(nx*ny*(k))+(nx*ny*nz*(g))]
 #define gg_cs(m,l,g1,g2) gg_cs[(m)+(nmat*(l))+(nmat*nmom*(g1))+(nmat*nmom*ng*(g2))]
 #define lma(m) lma[(m)]
-#define scalar_mom(m,i,j,k,g) scalar_mom[(m)+((cmom-1)*(i))+((cmom-1)*nx*(j))+((cmom-1)*nx*ny*(k))+((cmom-1)*nx*ny*nz*(g))]
+#define scalar_mom(g,m,i,j,k) scalar_mom[(g)+((ng)*(m))+(ng*(cmom-1)*(i))+(ng*(cmom-1)*nx*(j))+(ng*(cmom-1)*nx*ny*(k))]
 
 #define scat_cs(m,i,j,k,g) scat_cs[(m)+(nmom*(i))+(nmom*nx*(j))+(nmom*nx*ny*(k))+(nmom*nx*ny*nz*(g))]
 
@@ -250,7 +250,7 @@ __kernel void reduce_angular(
     {
         double tot_g = 0.0;
         for (unsigned int l = 0; l < cmom-1; l++)
-            scalar_mom(l,i,j,k,g) = 0.0;
+            scalar_mom(g,l,i,j,k) = 0.0;
         // For angles
         for (unsigned int a = 0; a < nang; a++)
         {
@@ -271,14 +271,14 @@ __kernel void reduce_angular(
                 tot_g += weights(a) * (0.5 * (angular7(a,g,i,j,k) + angular_prev7(a,g,i,j,k)));
                 for (unsigned int l = 0; l < (cmom-1); l++)
                 {
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,0) * weights(a) * (0.5 * (angular0(a,g,i,j,k) + angular_prev0(a,g,i,j,k)));
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,1) * weights(a) * (0.5 * (angular1(a,g,i,j,k) + angular_prev1(a,g,i,j,k)));
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,2) * weights(a) * (0.5 * (angular2(a,g,i,j,k) + angular_prev2(a,g,i,j,k)));
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,3) * weights(a) * (0.5 * (angular3(a,g,i,j,k) + angular_prev3(a,g,i,j,k)));
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,4) * weights(a) * (0.5 * (angular4(a,g,i,j,k) + angular_prev4(a,g,i,j,k)));
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,5) * weights(a) * (0.5 * (angular5(a,g,i,j,k) + angular_prev5(a,g,i,j,k)));
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,6) * weights(a) * (0.5 * (angular6(a,g,i,j,k) + angular_prev6(a,g,i,j,k)));
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,7) * weights(a) * (0.5 * (angular7(a,g,i,j,k) + angular_prev7(a,g,i,j,k)));
+                    scalar_mom(g,l,i,j,k) += scat_coef(a,l+1,0) * weights(a) * (0.5 * (angular0(a,g,i,j,k) + angular_prev0(a,g,i,j,k)));
+                    scalar_mom(g,l,i,j,k) += scat_coef(a,l+1,1) * weights(a) * (0.5 * (angular1(a,g,i,j,k) + angular_prev1(a,g,i,j,k)));
+                    scalar_mom(g,l,i,j,k) += scat_coef(a,l+1,2) * weights(a) * (0.5 * (angular2(a,g,i,j,k) + angular_prev2(a,g,i,j,k)));
+                    scalar_mom(g,l,i,j,k) += scat_coef(a,l+1,3) * weights(a) * (0.5 * (angular3(a,g,i,j,k) + angular_prev3(a,g,i,j,k)));
+                    scalar_mom(g,l,i,j,k) += scat_coef(a,l+1,4) * weights(a) * (0.5 * (angular4(a,g,i,j,k) + angular_prev4(a,g,i,j,k)));
+                    scalar_mom(g,l,i,j,k) += scat_coef(a,l+1,5) * weights(a) * (0.5 * (angular5(a,g,i,j,k) + angular_prev5(a,g,i,j,k)));
+                    scalar_mom(g,l,i,j,k) += scat_coef(a,l+1,6) * weights(a) * (0.5 * (angular6(a,g,i,j,k) + angular_prev6(a,g,i,j,k)));
+                    scalar_mom(g,l,i,j,k) += scat_coef(a,l+1,7) * weights(a) * (0.5 * (angular7(a,g,i,j,k) + angular_prev7(a,g,i,j,k)));
                 }
             }
             else
@@ -293,14 +293,14 @@ __kernel void reduce_angular(
                 tot_g += weights(a) * angular7(a,g,i,j,k);
                 for (unsigned int l = 0; l < (cmom-1); l++)
                 {
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,0) * weights(a) * angular0(a,g,i,j,k);
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,1) * weights(a) * angular1(a,g,i,j,k);
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,2) * weights(a) * angular2(a,g,i,j,k);
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,3) * weights(a) * angular3(a,g,i,j,k);
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,4) * weights(a) * angular4(a,g,i,j,k);
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,5) * weights(a) * angular5(a,g,i,j,k);
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,6) * weights(a) * angular6(a,g,i,j,k);
-                    scalar_mom(l,i,j,k,g) += scat_coef(a,l+1,7) * weights(a) * angular7(a,g,i,j,k);
+                    scalar_mom(g,l,i,j,k) += scat_coef(a,l+1,0) * weights(a) * angular0(a,g,i,j,k);
+                    scalar_mom(g,l,i,j,k) += scat_coef(a,l+1,1) * weights(a) * angular1(a,g,i,j,k);
+                    scalar_mom(g,l,i,j,k) += scat_coef(a,l+1,2) * weights(a) * angular2(a,g,i,j,k);
+                    scalar_mom(g,l,i,j,k) += scat_coef(a,l+1,3) * weights(a) * angular3(a,g,i,j,k);
+                    scalar_mom(g,l,i,j,k) += scat_coef(a,l+1,4) * weights(a) * angular4(a,g,i,j,k);
+                    scalar_mom(g,l,i,j,k) += scat_coef(a,l+1,5) * weights(a) * angular5(a,g,i,j,k);
+                    scalar_mom(g,l,i,j,k) += scat_coef(a,l+1,6) * weights(a) * angular6(a,g,i,j,k);
+                    scalar_mom(g,l,i,j,k) += scat_coef(a,l+1,7) * weights(a) * angular7(a,g,i,j,k);
                 }
             }
         }
@@ -487,7 +487,7 @@ __kernel void reduce_moments_cell(
         }
         // Save result
         if (a == 0)
-            scalar_mom(l,i,j,k,g) = scratch[0];
+            scalar_mom(g,l,i,j,k) = scratch[0];
     }
 }
 
@@ -641,7 +641,7 @@ __kernel void calc_outer_source(
             {
                 for (int m = 0; m < lma(l); m++)
                 {
-                    g2g_source(mom,i,j,k,g1) += gg_cs(map(i,j,k)-1,l,g2,g1) * scalar_mom(mom-1,i,j,k,g2);
+                    g2g_source(mom,i,j,k,g1) += gg_cs(map(i,j,k)-1,l,g2,g1) * scalar_mom(g2,mom-1,i,j,k);
                     mom++;
                 }
             }
@@ -679,7 +679,7 @@ __kernel void calc_inner_source(
         {
             for (int m = 0; m < lma(l); m++)
             {
-                source(mom,i,j,k,g) = g2g_source(mom,i,j,k,g) + scat_cs(l,i,j,k,g) * scalar_mom(mom-1,i,j,k,g);
+                source(mom,i,j,k,g) = g2g_source(mom,i,j,k,g) + scat_cs(l,i,j,k,g) * scalar_mom(g,mom-1,i,j,k);
                 mom++;
             }
         }

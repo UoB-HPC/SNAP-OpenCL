@@ -246,9 +246,17 @@ void get_scalar_flux_(double *scalar)
 
 void get_scalar_flux_moments_(double *scalar_moments)
 {
+    double *tmp = malloc(sizeof(double)*(cmom-1)*nx*ny*nz*ng);
     cl_int err;
-    err = clEnqueueReadBuffer(queue[0], d_scalar_mom, CL_TRUE, 0, sizeof(double)*(cmom-1)*nx*ny*nz*ng, scalar_moments, 0, NULL, NULL);
+    err = clEnqueueReadBuffer(queue[0], d_scalar_mom, CL_TRUE, 0, sizeof(double)*(cmom-1)*nx*ny*nz*ng, tmp, 0, NULL, NULL);
     check_error(err, "Enqueue read scalar_mom buffer");
+    for (unsigned int g = 0; g < ng; g++)
+        for (unsigned int l = 0; l < cmom-1; l++)
+            for (unsigned int i = 0; i < nx; i++)
+                for (unsigned int j = 0; j < ny; j++)
+                    for (unsigned int k = 0; k < nz; k++)
+                        scalar_moments[l+((cmom-1)*i)+((cmom-1)*nx*j)+((cmom-1)*nx*ny*k)+((cmom-1)*nx*ny*nz*g)] = tmp[g+(ng*l)+(ng*(cmom-1)*i)+(ng*(cmom-1)*nx*j)+(ng*(cmom-1)*nx*ny*k)];
+    free(tmp);
 }
 
 
