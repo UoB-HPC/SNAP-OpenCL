@@ -152,9 +152,6 @@ void opencl_teardown_(void)
 {
     printf("Releasing OpenCL...");
 
-    // Release the event array
-    free(events);
-
     // Release the zero edge array
     free(zero_edge);
 

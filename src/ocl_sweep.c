@@ -105,7 +105,7 @@ void set_sweep_cell_args(void)
 }
 
 // Enqueue the kernels to sweep over the grid and compute the angular flux
-// Kernel: cell
+// Kernel: wavefront of cells
 // Work-group: energy group
 // Work-item: angle
 void enqueue_octant(const unsigned int timestep, const unsigned int oct, const unsigned int ndiag, const plane *planes)
@@ -136,16 +136,15 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
 
     cl_int err;
 
-    size_t global[1] = {nang * ng};
-
     // Set a local worksize if specified by the environment
+    size_t global[2] = {nang * ng , 1};
     size_t local_val;
     size_t *local;
     char *local_size = getenv("SNAP_OCL_LOCAL");
     if (local_size != NULL)
     {
 
-        local_val = strtol(local_size, NULL, 10);
+        /*local_val = strtol(local_size, NULL, 10);
         local = &local_val;
         printf("Setting local work-group size to %lu\n", local_val);
         // Pad the global size to a multiple of the local size
@@ -153,7 +152,7 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
         {
             global[0] += local_val - (global[0] % local_val);
             printf("Resetting global size from %d to %lu\n", nang*ng, global[0]);
-        }
+        }*/
     }
     else
     {
@@ -163,6 +162,9 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
     for (int qq = 0; qq < NUM_QUEUES; qq++)
     {
         err = clSetKernelArg(k_sweep_cell[qq], 3, sizeof(unsigned int), &oct);
+        err = clSetKernelArg(k_sweep_cell[qq], 0, sizeof(int), &istep);
+        err = clSetKernelArg(k_sweep_cell[qq], 1, sizeof(int), &jstep);
+        err = clSetKernelArg(k_sweep_cell[qq], 2, sizeof(int), &kstep);
         check_error(err, "Setting octant for sweep_cell kernel");
 
         // Swap the angular flux pointers if necessary
@@ -180,54 +182,20 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
         }
         check_error(err, "Setting flux_in/out args for sweep_cell kernel");
     }
-    // Store the number of cells up to the end of the previous plane
-    // Used to give the length of the wait list for the current plane
-    // cell enqueues
-    unsigned int last_event = 0;
 
     // Loop over the diagonal wavefronts
     for (unsigned int d = 0; d < ndiag; d++)
     {
-        for (int q = 0; q < NUM_QUEUES; q++)
-        {
-            if (last_event > 0)
-            {
-                // Enqueue wait on the last event on each queue (in order queue)
-                int min = (planes[d-1].num_cells < NUM_QUEUES) ? planes[d-1].num_cells : NUM_QUEUES;
-                err = clEnqueueWaitForEvents(queue[q], min, events+last_event-min);
-                check_error(err, "Enqueue wait for events between wavefront");
-            }
-        }
-        // Loop through the list of cells in this plane
-        for (unsigned int l = 0; l < planes[d].num_cells; l++)
-        {
-            // Calculate the real cell index for this octant
-            int i = planes[d].cells[l].i;
-            int j = planes[d].cells[l].j;
-            int k = planes[d].cells[l].k;
-            if (istep < 0)
-                i = nx - i - 1;
-            if (jstep < 0)
-                j = ny - j - 1;
-            if (kstep < 0)
-                k = nz - k - 1;
-
-            // Set kernel args for cell index
-            err = clSetKernelArg(k_sweep_cell[l % NUM_QUEUES], 0, sizeof(unsigned int), &i);
-            err |= clSetKernelArg(k_sweep_cell[l % NUM_QUEUES], 1, sizeof(unsigned int), &j);
-            err |= clSetKernelArg(k_sweep_cell[l % NUM_QUEUES], 2, sizeof(unsigned int), &k);
-            check_error(err, "Setting sweep_cell kernel args cell positions");
-
-            // Enqueue the kernel
-            err = clEnqueueNDRangeKernel(queue[l % NUM_QUEUES], k_sweep_cell[l % NUM_QUEUES], 1, 0, global, local, 0, NULL, &events[last_event+l]);
-            check_error(err, "Enqueue sweep_cell kernel");
-        }
-        last_event += planes[d].num_cells;
+        cl_mem d_list = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(struct cell)*planes[d].num_cells, planes[d].cells, &err);
+        check_error(err, "Copying diagonal list");
+        err = clSetKernelArg(k_sweep_cell[0], 26, sizeof(cl_mem), &d_list);
+        check_error(err, "Setting list argument");
+        global[1] = planes[d].num_cells;
+        err = clEnqueueNDRangeKernel(queue[0], k_sweep_cell[0], 2, 0, global, local, 0, NULL, NULL);
+        check_error(err, "enqueue wavefront");
+        err = clReleaseMemObject(d_list);
+        check_error(err, "Release mem object");
     }
-    // Decrement the reference counters so the API can bin these events
-    for (int e = 0; e < nx*ny*nz; e++)
-        clReleaseEvent(events[e]);
-
 }
 
 // Perform a sweep over the grid for all the octants

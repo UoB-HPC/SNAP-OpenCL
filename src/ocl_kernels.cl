@@ -51,13 +51,16 @@
 
 #define scat_cs(m,i,j,k,g) scat_cs[(m)+(nmom*(i))+(nmom*nx*(j))+(nmom*nx*ny*(k))+(nmom*nx*ny*nz*(g))]
 
+struct cell {
+    unsigned int i,j,k;
+};
 
 // Solve the transport equations for a single angle in a single cell for a single group
 __kernel void sweep_cell(
     // Current cell index
-    const unsigned int i,
-    const unsigned int j,
-    const unsigned int k,
+    const int istep,
+    const int jstep,
+    const int kstep,
     const unsigned int oct,
 
     // Problem sizes
@@ -90,12 +93,17 @@ __kernel void sweep_cell(
 
     // Source
     __global const double * restrict source,
-    __global const double * restrict denom
+    __global const double * restrict denom,
+
+    __global const struct cell * restrict cell_index
     )
 {
     // Get indexes for angle and group
     const unsigned int a_idx = get_global_id(0) % nang;
     const unsigned int g_idx = get_global_id(0) / nang;
+    const unsigned int i = (istep > 0) ? cell_index[get_global_id(1)].i : nx - cell_index[get_global_id(1)].i - 1;
+    const unsigned int j = (jstep > 0) ? cell_index[get_global_id(1)].j : ny - cell_index[get_global_id(1)].j - 1;
+    const unsigned int k = (kstep > 0) ? cell_index[get_global_id(1)].k : nz - cell_index[get_global_id(1)].k - 1;
 
     if (a_idx >= nang || g_idx >= ng)
         return;

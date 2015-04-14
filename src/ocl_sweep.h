@@ -68,13 +68,6 @@ cl_mem d_g2g_source;
 cl_mem d_scalar_mom;
 cl_mem d_scat_cs;
 
-// List of OpenCL events, one for each cell
-// This is used to encourage spacial parallelism by
-// enqueuing kernels in multiple queues which only
-// depend on all their downwind neighbours.
-// This list stores those events, and is reset every octant.
-cl_event *events;
-
 // Create an empty buffer to zero out the edge flux arrays
 // Each direction can share it as we make sure that it is
 // big enough for each of them

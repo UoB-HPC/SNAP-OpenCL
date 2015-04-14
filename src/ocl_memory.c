@@ -106,9 +106,6 @@ void copy_to_device_(
 
     check_device_memory();
 
-    // Create array for OpenCL events - one for each cell
-    events = calloc(sizeof(cl_event),nx*ny*nz);
-
     // Create zero array for the edge flux buffers
     // First we need maximum two of nx, ny and nz
     size_t s = nang * ng;
