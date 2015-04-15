@@ -143,6 +143,8 @@ void opencl_setup_(void)
     k_calc_scattering_cross_section = clCreateKernel(program, "calc_scattering_cross_section", &err);
     check_error(err, "Creating kernel scattering_cross_section");
 
+    k_zero_edge_array = clCreateKernel(program, "zero_edge_array", &err);
+    check_error(err, "Creating kernel zero_edge_array");
     printf("\nOpenCL environment setup complete\n\n");
 
 }
@@ -278,6 +280,9 @@ void opencl_teardown_(void)
 
     err = clReleaseKernel(k_calc_scattering_cross_section);
     check_error(err, "Releasing k_calc_scattering_cross_section kernel");
+
+    err = clReleaseKernel(k_zero_edge_array);
+    check_error(err, "Releasing k_zero_edge_array kernel");
 
     // Release program
     err = clReleaseProgram(program);

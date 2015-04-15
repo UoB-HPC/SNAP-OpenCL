@@ -71,14 +71,24 @@ void copy_total_cross_section_to_device_(double *total_cross_section)
 void zero_edge_flux_buffers_(void)
 {
     cl_int err;
-    err = clEnqueueWriteBuffer(queue[0], d_flux_i, CL_FALSE, 0, sizeof(double)*nang*ny*nz*ng, zero_edge, 0, NULL, NULL);
-    check_error(err, "Zeroing flux_i buffer");
 
-    err = clEnqueueWriteBuffer(queue[0], d_flux_j, CL_FALSE, 0, sizeof(double)*nang*nx*nz*ng, zero_edge, 0, NULL, NULL);
-    check_error(err, "Zeroing flux_j buffer");
+    size_t global[1] = {nang*ny*nz*ng};
+    err = clSetKernelArg(k_zero_edge_array, 0, sizeof(cl_mem), &d_flux_i);
+    check_error(err, "setting zero array flux_i");
+    err = clEnqueueNDRangeKernel(queue[0], k_zero_edge_array, 1, 0, global, NULL, 0, NULL, NULL);
+    check_error(err, "Enqueue zero flux_i");
 
-    err = clEnqueueWriteBuffer(queue[0], d_flux_k, CL_FALSE, 0, sizeof(double)*nang*nx*ny*ng, zero_edge, 0, NULL, NULL);
-    check_error(err, "Zeroing flux_k buffer");
+    global[0] = nang*nx*nz*ng;
+    err = clSetKernelArg(k_zero_edge_array, 0, sizeof(cl_mem), &d_flux_j);
+    check_error(err, "setting zero array flux_j");
+    err = clEnqueueNDRangeKernel(queue[0], k_zero_edge_array, 1, 0, global, NULL, 0, NULL, NULL);
+    check_error(err, "Enqueue zero flux_j");
+
+    global[0] = nang*nx*ny*ng;
+    err = clSetKernelArg(k_zero_edge_array, 0, sizeof(cl_mem), &d_flux_k);
+    check_error(err, "setting zero array flux_k");
+    err = clEnqueueNDRangeKernel(queue[0], k_zero_edge_array, 1, 0, global, NULL, 0, NULL, NULL);
+    check_error(err, "Enqueue zero flux_k");
 }
 
 void zero_centre_flux_in_buffer_(void)

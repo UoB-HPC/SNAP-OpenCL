@@ -694,3 +694,9 @@ __kernel void calc_inner_source(
     }
 }
 
+// Zero an edge array
+__kernel void zero_edge_array(__global double * array)
+{
+    const unsigned int i = get_global_id(0);
+    array[i] = 0.0;
+}
