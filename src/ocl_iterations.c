@@ -283,19 +283,19 @@ void expand_scattering_cross_section(void)
 
 bool check_convergence(double *old, double *new, double epsi)
 {
-    for (unsigned int g = 0; g < ng; g++)
-        for (unsigned int k = 0; k < nz; k++)
-            for (unsigned int j = 0; j < ny; j++)
-                for (unsigned int i = 0; i < nx; i++)
+    for (unsigned int k = 0; k < nz; k++)
+        for (unsigned int j = 0; j < ny; j++)
+            for (unsigned int i = 0; i < nx; i++)
+                for (unsigned int g = 0; g < ng; g++)
                 {
                     double val;
-                    if (fabs(old[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)] > tolr))
+                    if (fabs(old[g+(ng*i)+(ng*nx*j)+(ng*nx*ny*k)] > tolr))
                     {
-                        val = fabs(new[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)]/old[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)] - 1.0);
+                        val = fabs(new[g+(ng*i)+(ng*nx*j)+(ng*nx*ny*k)]/old[g+(ng*i)+(ng*nx*j)+(ng*nx*ny*k)] - 1.0);
                     }
                     else
                     {
-                        val = fabs(new[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)] - old[i+(nx*j)+(nx*ny*k)+(nx*ny*nz*g)]);
+                        val = fabs(new[g+(ng*i)+(ng*nx*j)+(ng*nx*ny*k)] - old[g+(ng*i)+(ng*nx*j)+(ng*nx*ny*k)]);
                     }
                     if (val > epsi)
                     {
@@ -340,7 +340,7 @@ void ocl_iterations_(void)
             // Compute the outer source
             compute_outer_source();
             // Save flux
-            get_scalar_flux_(old_outer_scalar);
+            get_scalar_flux_(old_outer_scalar, false);
             // Inner loop
             for (unsigned int i = 0; i < inners; i++)
             {
@@ -348,7 +348,7 @@ void ocl_iterations_(void)
                 // Compute the inner source
                 compute_inner_source();
                 // Save flux
-                get_scalar_flux_(old_inner_scalar);
+                get_scalar_flux_(old_inner_scalar, false);
                 zero_edge_flux_buffers_();
                 // Sweep
                 ocl_sweep_();
@@ -357,13 +357,13 @@ void ocl_iterations_(void)
                 reduce_angular_cells();
                 reduce_moments_cells();
                 // Check convergence
-                get_scalar_flux_(new_inner_scalar);
+                get_scalar_flux_(new_inner_scalar, true);
                 inner_done = check_convergence(old_inner_scalar, new_inner_scalar, epsi);
                 if (inner_done)
                     break;
             }
             // Check convergence
-            get_scalar_flux_(new_outer_scalar);
+            get_scalar_flux_(new_outer_scalar, true);
             outer_done = check_convergence(old_outer_scalar, new_outer_scalar, 100.0*epsi);
             if (outer_done && inner_done)
                 break;

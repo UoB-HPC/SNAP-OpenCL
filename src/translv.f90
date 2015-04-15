@@ -312,7 +312,7 @@ SUBROUTINE translv
   PRINT *, "Tolerance", 100.0*epsi
   PRINT *
 
-  CALL get_scalar_flux( scalar_flux )
+  CALL get_scalar_flux_trans( scalar_flux )
 
   IF ( ALL ( ABS ( scalar_flux - flux ) < 100.0*epsi ) ) THEN
     PRINT *, "Scalar flux matched"

@@ -234,7 +234,16 @@ void copy_to_device_(
 }
 
 // Copy the scalar flux value back to the host
-void get_scalar_flux_(double *scalar)
+void get_scalar_flux_(double *scalar, bool block)
+{
+    cl_bool blocking = (block) ? CL_TRUE : CL_FALSE;
+    cl_int err;
+    err = clEnqueueReadBuffer(queue[0], d_scalar_flux, blocking, 0, sizeof(double)*nx*ny*nz*ng, scalar, 0, NULL, NULL);
+    check_error(err, "Enqueue read scalar_flux buffer");
+}
+
+// Copy the scalar flux value back to the host and transpose
+void get_scalar_flux_trans_(double *scalar)
 {
     double *tmp = malloc(sizeof(double)*nx*ny*nz*ng);
     cl_int err;
