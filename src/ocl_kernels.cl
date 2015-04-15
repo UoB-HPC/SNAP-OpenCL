@@ -635,9 +635,9 @@ __kernel void calc_outer_source(
     __global double * restrict g2g_source
     )
 {
-    const unsigned int i = get_global_id(0);
-    const unsigned int j = get_global_id(1);
-    const unsigned int k = get_global_id(2);
+    const unsigned int i = get_global_id(0) % nx;
+    const unsigned int j = (get_global_id(0) / nx) % ny;
+    const unsigned int k = get_global_id(0) / (nx*ny);
 
     for (unsigned int g1 = 0; g1 < ng; g1++)
     {
