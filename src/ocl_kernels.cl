@@ -360,53 +360,53 @@ __kernel void reduce_angular_cell(
 
     const double w = weights[a];
 
-    for (unsigned int k = 0; k < nz; k++)
-        for (unsigned int j = 0; j < ny; j++)
-            for (unsigned int i = 0; i < nx; i++)
-            {
-                // Load into local memory
-                scratch[a] = 0.0;
-                if (a < nang)
-                {
-                    if (time_delta(g) != 0.0)
-                    {
-                        scratch[a] = w * (0.5 * (angular0(a,g,i,j,k) + angular_prev0(a,g,i,j,k)));
-                        scratch[a] += w * (0.5 * (angular1(a,g,i,j,k) + angular_prev1(a,g,i,j,k)));
-                        scratch[a] += w * (0.5 * (angular2(a,g,i,j,k) + angular_prev2(a,g,i,j,k)));
-                        scratch[a] += w * (0.5 * (angular3(a,g,i,j,k) + angular_prev3(a,g,i,j,k)));
-                        scratch[a] += w * (0.5 * (angular4(a,g,i,j,k) + angular_prev4(a,g,i,j,k)));
-                        scratch[a] += w * (0.5 * (angular5(a,g,i,j,k) + angular_prev5(a,g,i,j,k)));
-                        scratch[a] += w * (0.5 * (angular6(a,g,i,j,k) + angular_prev6(a,g,i,j,k)));
-                        scratch[a] += w * (0.5 * (angular7(a,g,i,j,k) + angular_prev7(a,g,i,j,k)));
-                    }
-                    else
-                    {
-                        scratch[a] = w * angular0(a,g,i,j,k);
-                        scratch[a] += w * angular1(a,g,i,j,k);
-                        scratch[a] += w * angular2(a,g,i,j,k);
-                        scratch[a] += w * angular3(a,g,i,j,k);
-                        scratch[a] += w * angular4(a,g,i,j,k);
-                        scratch[a] += w * angular5(a,g,i,j,k);
-                        scratch[a] += w * angular6(a,g,i,j,k);
-                        scratch[a] += w * angular7(a,g,i,j,k);
-                    }
-                }
+    const unsigned int i = get_global_id(1) % nx;
+    const unsigned int j = (get_global_id(1) / nx) % ny;
+    const unsigned int k = get_global_id(1) / (nx*ny);
 
-                barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
+    // Load into local memory
+    scratch[a] = 0.0;
+    if (a < nang)
+    {
+        if (time_delta(g) != 0.0)
+        {
+            scratch[a] = w * (0.5 * (angular0(a,g,i,j,k) + angular_prev0(a,g,i,j,k)));
+            scratch[a] += w * (0.5 * (angular1(a,g,i,j,k) + angular_prev1(a,g,i,j,k)));
+            scratch[a] += w * (0.5 * (angular2(a,g,i,j,k) + angular_prev2(a,g,i,j,k)));
+            scratch[a] += w * (0.5 * (angular3(a,g,i,j,k) + angular_prev3(a,g,i,j,k)));
+            scratch[a] += w * (0.5 * (angular4(a,g,i,j,k) + angular_prev4(a,g,i,j,k)));
+            scratch[a] += w * (0.5 * (angular5(a,g,i,j,k) + angular_prev5(a,g,i,j,k)));
+            scratch[a] += w * (0.5 * (angular6(a,g,i,j,k) + angular_prev6(a,g,i,j,k)));
+            scratch[a] += w * (0.5 * (angular7(a,g,i,j,k) + angular_prev7(a,g,i,j,k)));
+        }
+        else
+        {
+            scratch[a] = w * angular0(a,g,i,j,k);
+            scratch[a] += w * angular1(a,g,i,j,k);
+            scratch[a] += w * angular2(a,g,i,j,k);
+            scratch[a] += w * angular3(a,g,i,j,k);
+            scratch[a] += w * angular4(a,g,i,j,k);
+            scratch[a] += w * angular5(a,g,i,j,k);
+            scratch[a] += w * angular6(a,g,i,j,k);
+            scratch[a] += w * angular7(a,g,i,j,k);
+        }
+    }
 
-                // Reduce in local memory
-                for (unsigned int offset = get_local_size(0) / 2; offset > 0; offset >>= 1)
-                {
-                    if (a < offset)
-                    {
-                        scratch[a] += scratch[a + offset];
-                    }
-                    barrier(CLK_LOCAL_MEM_FENCE);
-                }
-                // Save result
-                if (a == 0)
-                    scalar(g,i,j,k) = scratch[0];
-            }
+    barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
+
+    // Reduce in local memory
+    for (unsigned int offset = get_local_size(0) / 2; offset > 0; offset >>= 1)
+    {
+        if (a < offset)
+        {
+            scratch[a] += scratch[a + offset];
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+    // Save result
+    if (a == 0)
+        scalar(g,i,j,k) = scratch[0];
+
 }
 
 // Reduce the flux moments for a single cell

@@ -97,8 +97,8 @@ void reduce_angular_cells(void)
     size_t power = 1 << (unsigned int)ceil(log2((double)nang));
     if (power < size) size = power;
 
-    const size_t global[1] = {size * ng};
-    const size_t local[1] = {size};
+    const size_t global[2] = {size * ng, nx*ny*nz};
+    const size_t local[2] = {size, 1};
 
     err = clSetKernelArg(k_reduce_angular_cell, 0, sizeof(unsigned int), &nx);
     err |= clSetKernelArg(k_reduce_angular_cell, 1, sizeof(unsigned int), &ny);
@@ -159,7 +159,7 @@ void reduce_angular_cells(void)
     err |= clSetKernelArg(k_reduce_angular_cell, 27, sizeof(cl_mem), &d_scalar_flux);
     check_error(err, "Setting reduce_angular_cell kernel arguments");
 
-    err = clEnqueueNDRangeKernel(queue[0], k_reduce_angular_cell, 1, 0, global, local, 0, NULL, NULL);
+    err = clEnqueueNDRangeKernel(queue[0], k_reduce_angular_cell, 2, 0, global, local, 0, NULL, NULL);
     check_error(err, "Enqueue reduce_angular_cell kernel");
 
 }
