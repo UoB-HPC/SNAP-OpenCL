@@ -312,9 +312,8 @@ void ocl_iterations_(void)
 {
     cl_int err;
     double *old_outer_scalar = malloc(sizeof(double)*nx*ny*nz*ng);
-    double *new_outer_scalar = malloc(sizeof(double)*nx*ny*nz*ng);
     double *old_inner_scalar = malloc(sizeof(double)*nx*ny*nz*ng);
-    double *new_inner_scalar = malloc(sizeof(double)*nx*ny*nz*ng);
+    double *new_scalar = malloc(sizeof(double)*nx*ny*nz*ng);
     bool outer_done;
     double t1 = omp_get_wtime();
     // Timestep loop
@@ -357,14 +356,13 @@ void ocl_iterations_(void)
                 reduce_angular_cells();
                 reduce_moments_cells();
                 // Check convergence
-                get_scalar_flux_(new_inner_scalar, true);
-                inner_done = check_convergence(old_inner_scalar, new_inner_scalar, epsi);
+                get_scalar_flux_(new_scalar, true);
+                inner_done = check_convergence(old_inner_scalar, new_scalar, epsi);
                 if (inner_done)
                     break;
             }
             // Check convergence
-            get_scalar_flux_(new_outer_scalar, true);
-            outer_done = check_convergence(old_outer_scalar, new_outer_scalar, 100.0*epsi);
+            outer_done = check_convergence(old_outer_scalar, new_scalar, 100.0*epsi);
             if (outer_done && inner_done)
                 break;
         }
@@ -381,7 +379,6 @@ void ocl_iterations_(void)
         printf("Warning: did not converge\n");
 
     free(old_outer_scalar);
-    free(new_outer_scalar);
+    free(new_scalar);
     free(old_inner_scalar);
-    free(new_inner_scalar);
 }
