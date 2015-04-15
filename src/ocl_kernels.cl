@@ -680,9 +680,9 @@ __kernel void calc_inner_source(
     __global double * restrict source
     )
 {
-    const unsigned int i = get_global_id(0);
-    const unsigned int j = get_global_id(1);
-    const unsigned int k = get_global_id(2);
+    const unsigned int i = get_global_id(0) % nx;
+    const unsigned int j = (get_global_id(0) / nx) % ny;
+    const unsigned int k = get_global_id(0) / (nx*ny);
 
     for (unsigned int g = 0; g < ng; g++)
     {

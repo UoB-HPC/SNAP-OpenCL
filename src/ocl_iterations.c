@@ -239,7 +239,7 @@ void compute_outer_source(void)
 void compute_inner_source(void)
 {
     cl_int err;
-    const size_t global[3] = {nx,ny,nz};
+    const size_t global[1] = {nx*ny*nz};
 
     err = clSetKernelArg(k_calc_inner_source, 0, sizeof(unsigned int), &nx);
     err |= clSetKernelArg(k_calc_inner_source, 1, sizeof(unsigned int), &ny);
@@ -255,7 +255,7 @@ void compute_inner_source(void)
     err |= clSetKernelArg(k_calc_inner_source, 11, sizeof(cl_mem), &d_source);
     check_error(err, "Setting calc_inner_source arguments");
 
-    err = clEnqueueNDRangeKernel(queue[0], k_calc_inner_source, 3, 0, global, NULL, 0, NULL, NULL);
+    err = clEnqueueNDRangeKernel(queue[0], k_calc_inner_source, 1, 0, global, NULL, 0, NULL, NULL);
     check_error(err, "Enqueue calc_inner_source kernel");
 }
 
