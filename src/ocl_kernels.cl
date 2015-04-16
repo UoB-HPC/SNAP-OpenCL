@@ -403,6 +403,8 @@ __kernel void reduce_angular_cell(
         {
             scratch[a] += scratch[a + offset];
         }
+        else
+            return;
         barrier(CLK_LOCAL_MEM_FENCE);
     }
     // Save result
