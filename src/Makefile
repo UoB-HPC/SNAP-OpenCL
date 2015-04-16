@@ -25,6 +25,9 @@ endif
 CC = mpicc
 CFLAGS = -std=c99 -O3
 CFLAGS2 = -lm
+ifdef TIMING
+	CFLAGS += -DTIMING
+endif
 ifeq ($(shell mpicc --showme:command),gcc)
 	CFLAGS += -fopenmp
 	FFLAGS += -fopenmp

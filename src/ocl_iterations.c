@@ -350,11 +350,28 @@ void ocl_iterations_(void)
                 get_scalar_flux_(old_inner_scalar, false);
                 zero_edge_flux_buffers_();
                 // Sweep
+#ifdef TIMING
+                err = clFinish(queue[0]);
+                check_error(err, "Finish queue before t1");
+                double t1 = omp_get_wtime();
+#endif
                 ocl_sweep_();
+#ifdef TIMING
+                err = clFinish(queue[0]);
+                check_error(err, "Finish queue before t2");
+                double t2 = omp_get_wtime();
+                printf("sweep took: %lfs\n", t2-t1);
+#endif
                 // Scalar flux
                 // ocl_scalar_flux_();
                 reduce_angular_cells();
                 reduce_moments_cells();
+#ifdef TIMING
+                err = clFinish(queue[0]);
+                check_error(err, "Finish queue before t3");
+                double t3 = omp_get_wtime();
+                printf("reductions took: %lfs\n", t3-t2);
+#endif
                 // Check convergence
                 get_scalar_flux_(new_scalar, true);
                 inner_done = check_convergence(old_inner_scalar, new_scalar, epsi);
