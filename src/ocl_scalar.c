@@ -184,9 +184,13 @@ void reduce_moments_cells(void)
         return;
     }
 
-    // get smallest power of 2 greater than nang
-    size_t power = 1 << (unsigned int)ceil(log2((double)nang));
-    if (power < size) size = power;
+    // get the closest power of 2 to nang
+    size_t power_up = 1 << (unsigned int)ceil(log2((double)nang));
+    size_t power_down = 1 << (unsigned int)(ceil(log2((double)nang))-1);
+    if (power_up - nang < nang - power_down)
+        size = power_up;
+    else
+        size = power_down;
 
     const size_t global[2] = {size * ng, nx*ny*nz};
     const size_t local[2] = {size, 1};

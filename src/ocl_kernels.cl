@@ -330,35 +330,34 @@ __kernel void reduce_angular_cell(
 
     __local double * restrict scratch,
 
-    __global const double * restrict weights,
-    __global const double * restrict scat_coef,
+    __global const double * restrict const weights,
+    __global const double * restrict const scat_coef,
 
-    __global const double * restrict angular0,
-    __global const double * restrict angular1,
-    __global const double * restrict angular2,
-    __global const double * restrict angular3,
-    __global const double * restrict angular4,
-    __global const double * restrict angular5,
-    __global const double * restrict angular6,
-    __global const double * restrict angular7,
+    __global const double * restrict const angular0,
+    __global const double * restrict const angular1,
+    __global const double * restrict const angular2,
+    __global const double * restrict const angular3,
+    __global const double * restrict const angular4,
+    __global const double * restrict const angular5,
+    __global const double * restrict const angular6,
+    __global const double * restrict const angular7,
 
-    __global const double * restrict angular_prev0,
-    __global const double * restrict angular_prev1,
-    __global const double * restrict angular_prev2,
-    __global const double * restrict angular_prev3,
-    __global const double * restrict angular_prev4,
-    __global const double * restrict angular_prev5,
-    __global const double * restrict angular_prev6,
-    __global const double * restrict angular_prev7,
+    __global const double * restrict const angular_prev0,
+    __global const double * restrict const angular_prev1,
+    __global const double * restrict const angular_prev2,
+    __global const double * restrict const angular_prev3,
+    __global const double * restrict const angular_prev4,
+    __global const double * restrict const angular_prev5,
+    __global const double * restrict const angular_prev6,
+    __global const double * restrict const angular_prev7,
 
-    __global const double * restrict time_delta,
+    __global const double * restrict const time_delta,
     __global double * restrict scalar
     )
 {
     const unsigned int a = get_local_id(0);
     const unsigned int g = get_group_id(0);
 
-    const double w = weights[a];
 
     const unsigned int i = get_global_id(1) % nx;
     const unsigned int j = (get_global_id(1) / nx) % ny;
@@ -366,29 +365,32 @@ __kernel void reduce_angular_cell(
 
     // Load into local memory
     scratch[a] = 0.0;
-    if (a < nang)
+    for (unsigned int aa = a; aa < nang; aa += get_local_size(0))
     {
+        const double w = weights[aa];
         if (time_delta(g) != 0.0)
         {
-            scratch[a] = w * (0.5 * (angular0(a,g,i,j,k) + angular_prev0(a,g,i,j,k)));
-            scratch[a] += w * (0.5 * (angular1(a,g,i,j,k) + angular_prev1(a,g,i,j,k)));
-            scratch[a] += w * (0.5 * (angular2(a,g,i,j,k) + angular_prev2(a,g,i,j,k)));
-            scratch[a] += w * (0.5 * (angular3(a,g,i,j,k) + angular_prev3(a,g,i,j,k)));
-            scratch[a] += w * (0.5 * (angular4(a,g,i,j,k) + angular_prev4(a,g,i,j,k)));
-            scratch[a] += w * (0.5 * (angular5(a,g,i,j,k) + angular_prev5(a,g,i,j,k)));
-            scratch[a] += w * (0.5 * (angular6(a,g,i,j,k) + angular_prev6(a,g,i,j,k)));
-            scratch[a] += w * (0.5 * (angular7(a,g,i,j,k) + angular_prev7(a,g,i,j,k)));
+            scratch[a] +=
+                w * (0.5 * (angular0(aa,g,i,j,k) + angular_prev0(aa,g,i,j,k))) + 
+                w * (0.5 * (angular1(aa,g,i,j,k) + angular_prev1(aa,g,i,j,k))) + 
+                w * (0.5 * (angular2(aa,g,i,j,k) + angular_prev2(aa,g,i,j,k))) + 
+                w * (0.5 * (angular3(aa,g,i,j,k) + angular_prev3(aa,g,i,j,k))) + 
+                w * (0.5 * (angular4(aa,g,i,j,k) + angular_prev4(aa,g,i,j,k))) + 
+                w * (0.5 * (angular5(aa,g,i,j,k) + angular_prev5(aa,g,i,j,k))) + 
+                w * (0.5 * (angular6(aa,g,i,j,k) + angular_prev6(aa,g,i,j,k))) + 
+                w * (0.5 * (angular7(aa,g,i,j,k) + angular_prev7(aa,g,i,j,k)));
         }
         else
         {
-            scratch[a] = w * angular0(a,g,i,j,k);
-            scratch[a] += w * angular1(a,g,i,j,k);
-            scratch[a] += w * angular2(a,g,i,j,k);
-            scratch[a] += w * angular3(a,g,i,j,k);
-            scratch[a] += w * angular4(a,g,i,j,k);
-            scratch[a] += w * angular5(a,g,i,j,k);
-            scratch[a] += w * angular6(a,g,i,j,k);
-            scratch[a] += w * angular7(a,g,i,j,k);
+            scratch[a] +=
+                w * angular0(aa,g,i,j,k) +
+                w * angular1(aa,g,i,j,k) +
+                w * angular2(aa,g,i,j,k) +
+                w * angular3(aa,g,i,j,k) +
+                w * angular4(aa,g,i,j,k) +
+                w * angular5(aa,g,i,j,k) +
+                w * angular6(aa,g,i,j,k) +
+                w * angular7(aa,g,i,j,k);
         }
     }
 
@@ -423,35 +425,33 @@ __kernel void reduce_moments_cell(
 
     __local double * restrict scratch,
 
-    __global const double * restrict weights,
-    __global const double * restrict scat_coef,
+    __global const double * restrict const weights,
+    __global const double * restrict const scat_coef,
 
-    __global const double * restrict angular0,
-    __global const double * restrict angular1,
-    __global const double * restrict angular2,
-    __global const double * restrict angular3,
-    __global const double * restrict angular4,
-    __global const double * restrict angular5,
-    __global const double * restrict angular6,
-    __global const double * restrict angular7,
+    __global const double * restrict const angular0,
+    __global const double * restrict const angular1,
+    __global const double * restrict const angular2,
+    __global const double * restrict const angular3,
+    __global const double * restrict const angular4,
+    __global const double * restrict const angular5,
+    __global const double * restrict const angular6,
+    __global const double * restrict const angular7,
 
-    __global const double * restrict angular_prev0,
-    __global const double * restrict angular_prev1,
-    __global const double * restrict angular_prev2,
-    __global const double * restrict angular_prev3,
-    __global const double * restrict angular_prev4,
-    __global const double * restrict angular_prev5,
-    __global const double * restrict angular_prev6,
-    __global const double * restrict angular_prev7,
+    __global const double * restrict const angular_prev0,
+    __global const double * restrict const angular_prev1,
+    __global const double * restrict const angular_prev2,
+    __global const double * restrict const angular_prev3,
+    __global const double * restrict const angular_prev4,
+    __global const double * restrict const angular_prev5,
+    __global const double * restrict const angular_prev6,
+    __global const double * restrict const angular_prev7,
 
-    __global const double * restrict time_delta,
+    __global const double * restrict const time_delta,
     __global double * restrict scalar_mom
     )
 {
     const unsigned int a = get_local_id(0);
     const unsigned int g = get_group_id(0);
-
-    const double w = weights[a];
 
     const unsigned int i = get_global_id(1) % nx;
     const unsigned int j = (get_global_id(1) / nx) % ny;
@@ -461,31 +461,35 @@ __kernel void reduce_moments_cell(
     {
         // Load into local memory
         scratch[a] = 0.0;
-        if (a < nang)
+        for (unsigned int aa = a; aa < nang; aa += get_local_size(0))
         {
+            const double w = weights[aa];
             if (time_delta(g) != 0.0)
             {
-                scratch[a] += scat_coef(a,l+1,0) * w * (0.5 * (angular0(a,g,i,j,k) + angular_prev0(a,g,i,j,k)));
-                scratch[a] += scat_coef(a,l+1,1) * w * (0.5 * (angular1(a,g,i,j,k) + angular_prev1(a,g,i,j,k)));
-                scratch[a] += scat_coef(a,l+1,2) * w * (0.5 * (angular2(a,g,i,j,k) + angular_prev2(a,g,i,j,k)));
-                scratch[a] += scat_coef(a,l+1,3) * w * (0.5 * (angular3(a,g,i,j,k) + angular_prev3(a,g,i,j,k)));
-                scratch[a] += scat_coef(a,l+1,4) * w * (0.5 * (angular4(a,g,i,j,k) + angular_prev4(a,g,i,j,k)));
-                scratch[a] += scat_coef(a,l+1,5) * w * (0.5 * (angular5(a,g,i,j,k) + angular_prev5(a,g,i,j,k)));
-                scratch[a] += scat_coef(a,l+1,6) * w * (0.5 * (angular6(a,g,i,j,k) + angular_prev6(a,g,i,j,k)));
-                scratch[a] += scat_coef(a,l+1,7) * w * (0.5 * (angular7(a,g,i,j,k) + angular_prev7(a,g,i,j,k)));
+                scratch[a] +=
+                    scat_coef(aa,l+1,0) * w * (0.5 * (angular0(aa,g,i,j,k) + angular_prev0(aa,g,i,j,k))) +
+                    scat_coef(aa,l+1,1) * w * (0.5 * (angular1(aa,g,i,j,k) + angular_prev1(aa,g,i,j,k))) +
+                    scat_coef(aa,l+1,2) * w * (0.5 * (angular2(aa,g,i,j,k) + angular_prev2(aa,g,i,j,k))) +
+                    scat_coef(aa,l+1,3) * w * (0.5 * (angular3(aa,g,i,j,k) + angular_prev3(aa,g,i,j,k))) +
+                    scat_coef(aa,l+1,4) * w * (0.5 * (angular4(aa,g,i,j,k) + angular_prev4(aa,g,i,j,k))) +
+                    scat_coef(aa,l+1,5) * w * (0.5 * (angular5(aa,g,i,j,k) + angular_prev5(aa,g,i,j,k))) +
+                    scat_coef(aa,l+1,6) * w * (0.5 * (angular6(aa,g,i,j,k) + angular_prev6(aa,g,i,j,k))) +
+                    scat_coef(aa,l+1,7) * w * (0.5 * (angular7(aa,g,i,j,k) + angular_prev7(aa,g,i,j,k)));
             }
             else
             {
-                scratch[a] += scat_coef(a,l+1,0) * w * angular0(a,g,i,j,k);
-                scratch[a] += scat_coef(a,l+1,1) * w * angular1(a,g,i,j,k);
-                scratch[a] += scat_coef(a,l+1,2) * w * angular2(a,g,i,j,k);
-                scratch[a] += scat_coef(a,l+1,3) * w * angular3(a,g,i,j,k);
-                scratch[a] += scat_coef(a,l+1,4) * w * angular4(a,g,i,j,k);
-                scratch[a] += scat_coef(a,l+1,5) * w * angular5(a,g,i,j,k);
-                scratch[a] += scat_coef(a,l+1,6) * w * angular6(a,g,i,j,k);
-                scratch[a] += scat_coef(a,l+1,7) * w * angular7(a,g,i,j,k);
+                scratch[a] +=
+                    scat_coef(aa,l+1,0) * w * angular0(aa,g,i,j,k) +
+                    scat_coef(aa,l+1,1) * w * angular1(aa,g,i,j,k) +
+                    scat_coef(aa,l+1,2) * w * angular2(aa,g,i,j,k) +
+                    scat_coef(aa,l+1,3) * w * angular3(aa,g,i,j,k) +
+                    scat_coef(aa,l+1,4) * w * angular4(aa,g,i,j,k) +
+                    scat_coef(aa,l+1,5) * w * angular5(aa,g,i,j,k) +
+                    scat_coef(aa,l+1,6) * w * angular6(aa,g,i,j,k) +
+                    scat_coef(aa,l+1,7) * w * angular7(aa,g,i,j,k);
             }
         }
+
 
         barrier(CLK_LOCAL_MEM_FENCE);
 
