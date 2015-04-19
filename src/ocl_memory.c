@@ -4,6 +4,7 @@
 // Forward declare to zero buffer functions
 extern void zero_edge_flux_buffers_(void);
 extern void zero_centre_flux_in_buffer_(void);
+extern void zero_centre_flux_out_buffer_(void);
 extern void zero_scalar_flux(void);
 extern void zero_scalar_moments(void);
 
@@ -134,6 +135,7 @@ void copy_to_device_(
     }
 
     zero_centre_flux_in_buffer_();
+    zero_centre_flux_out_buffer_();
 
     // flux_i(nang,ny,nz,ng)     - Working psi_x array (edge pointers)
     // flux_j(nang,ichunk,nz,ng) - Working psi_y array

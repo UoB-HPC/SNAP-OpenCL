@@ -104,6 +104,19 @@ void zero_centre_flux_in_buffer_(void)
     free(zero);
 }
 
+void zero_centre_flux_out_buffer_(void)
+{
+    cl_int err;
+    double *zero = (double *)calloc(sizeof(double),nang*nx*ny*nz*ng);
+    for (unsigned int o = 0; o < noct; o++)
+    {
+        err = clEnqueueWriteBuffer(queue[0], d_flux_out[o], CL_FALSE, 0, sizeof(double)*nang*nx*ny*nz*ng, zero, 0, NULL, NULL);
+        check_error(err, "Copying flux_out to device");
+    }
+    err = clFinish(queue[0]);
+    free(zero);
+}
+
 void zero_flux_moments_buffer(void)
 {
     cl_int err;
