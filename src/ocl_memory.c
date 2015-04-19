@@ -34,8 +34,8 @@ void check_device_memory(void)
 
     // Calculate total memory usage
     unsigned long total = 0;
-    total += sizeof(double)*nang*nx*ny*nz*ng;
-    total += sizeof(double)*nang*nx*ny*nz*ng;
+    total += sizeof(double)*nang*nx*ny*nz*ng*noct;
+    total += sizeof(double)*nang*nx*ny*nz*ng*noct;
     total += sizeof(double)*nang*ny*nz*ng;
     total += sizeof(double)*nang*nx*nz*ng;
     total += sizeof(double)*nang*nx*ny*ng;
