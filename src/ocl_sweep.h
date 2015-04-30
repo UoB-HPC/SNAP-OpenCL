@@ -21,6 +21,7 @@
 
 // Global OpenCL handles (context, queue, etc.)
 cl_device_id device;
+cl_device_type type;
 cl_context context;
 cl_command_queue queue[NUM_QUEUES];
 cl_program program;

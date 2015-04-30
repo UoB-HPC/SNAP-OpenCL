@@ -86,6 +86,10 @@ void opencl_setup_(void)
     check_error(err, "Getting device name");
     printf("Running on %s\n", name);
 
+    // Save device type (used to choosing a reduction)
+    err = clGetDeviceInfo(device, CL_DEVICE_TYPE, sizeof(cl_device_type), &type, NULL);
+    check_error(err, "Getting device type");
+
     // Create a context
     context = clCreateContext(0, 1, &device, NULL, NULL, &err);
     check_error(err, "Creating context");

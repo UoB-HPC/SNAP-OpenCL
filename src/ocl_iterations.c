@@ -376,9 +376,13 @@ void ocl_iterations_(void)
                 printf("sweep took: %lfs\n", t2-t1);
 #endif
                 // Scalar flux
-                // ocl_scalar_flux_();
-                reduce_angular_cells();
-                reduce_moments_cells();
+                if (type == CL_DEVICE_TYPE_CPU)
+                    ocl_scalar_flux_();
+                else
+                {
+                    reduce_angular_cells();
+                    reduce_moments_cells();
+                }
 #ifdef TIMING
                 err = clFinish(queue[0]);
                 check_error(err, "Finish queue before t3");
