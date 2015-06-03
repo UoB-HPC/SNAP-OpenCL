@@ -99,6 +99,7 @@ void set_sweep_cell_args(void)
 
         err |= clSetKernelArg(k_sweep_cell[i], 24, sizeof(cl_mem), &d_source);
         err |= clSetKernelArg(k_sweep_cell[i], 25, sizeof(cl_mem), &d_denom);
+        err |= clSetKernelArg(k_sweep_cell[i], 27, sizeof(cl_mem), &d_do_group);
         check_error(err, "Set sweep_cell kernel args");
     }
 

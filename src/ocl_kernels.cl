@@ -95,7 +95,8 @@ __kernel void sweep_cell(
     __global const double * restrict source,
     __global const double * restrict denom,
 
-    __global const struct cell * restrict cell_index
+    __global const struct cell * restrict cell_index,
+    __global const bool * restrict do_group
     )
 {
     // Get indexes for angle and group
@@ -106,6 +107,9 @@ __kernel void sweep_cell(
     const unsigned int k = (kstep > 0) ? cell_index[get_global_id(1)].k : nz - cell_index[get_global_id(1)].k - 1;
 
     if (a_idx >= nang || g_idx >= ng)
+        return;
+
+    if (!do_group[g_idx])
         return;
 
     // Assume transmissive (vacuum boundaries) and that we

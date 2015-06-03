@@ -70,6 +70,7 @@ cl_mem d_lma;
 cl_mem d_g2g_source;
 cl_mem d_scalar_mom;
 cl_mem d_scat_cs;
+cl_mem d_do_group;
 
 // Create an empty buffer to zero out the edge flux arrays
 // Each direction can share it as we make sure that it is
