@@ -294,17 +294,22 @@ void expand_scattering_cross_section(void)
     check_error(err, "Enqueue calc_scattering_cross_section kernel");
 }
 
-bool check_convergence(double *old, double *new, double epsi, bool *do_group, bool inner)
+bool check_convergence(double *old, double *new, double epsi, unsigned int *groups_todo, unsigned int *num_groups_todo, bool inner)
 {
     bool r = true;
     // Reset the do_group list
     if (inner)
-        for (unsigned int g = 0; g < ng; g++)
-            do_group[g] = false;
-    for (unsigned int k = 0; k < nz; k++)
-        for (unsigned int j = 0; j < ny; j++)
-            for (unsigned int i = 0; i < nx; i++)
-                for (unsigned int g = 0; g < ng; g++)
+        *num_groups_todo = 0;
+    for (unsigned int g = 0; g < ng; g++)
+    {
+        bool gr = false;
+        for (unsigned int k = 0; k < nz; k++)
+        {
+            if (gr) break;
+            for (unsigned int j = 0; j < ny; j++)
+            {
+                if (gr) break;
+                for (unsigned int i = 0; i < nx; i++)
                 {
                     double val;
                     if (fabs(old[g+(ng*i)+(ng*nx*j)+(ng*nx*ny*k)] > tolr))
@@ -318,16 +323,28 @@ bool check_convergence(double *old, double *new, double epsi, bool *do_group, bo
                     if (val > epsi)
                     {
                         if (inner)
-                            do_group[g] = true;
+                        {
+                            gr = true;
+                        }
+
                         r = false;
+                        break;
                     }
                 }
+            }
+        }
+        // Add g to the list of groups to do if we need to do it
+        if (inner && gr)
+        {
+            groups_todo[*num_groups_todo] = g;
+            *num_groups_todo += 1;
+        }
+    }
     // Check all inner groups are done in outer convergence test
     if (!inner)
     {
-        for (unsigned int g = 0; g < ng; g++)
-            if (do_group[g])
-                r = false;
+        if (*num_groups_todo != 0)
+            r = false;
     }
     return r;
 }
@@ -341,7 +358,8 @@ void ocl_iterations_(void)
     double *old_outer_scalar = malloc(sizeof(double)*nx*ny*nz*ng);
     double *old_inner_scalar = malloc(sizeof(double)*nx*ny*nz*ng);
     double *new_scalar = malloc(sizeof(double)*nx*ny*nz*ng);
-    bool *do_group = malloc(sizeof(bool)*ng);
+    unsigned int *groups_todo = malloc(sizeof(unsigned int)*ng);
+    unsigned int num_groups_todo;
     bool outer_done;
     double t1 = omp_get_wtime();
     // Timestep loop
@@ -360,7 +378,8 @@ void ocl_iterations_(void)
             // Reset the inner convergence list
             bool inner_done = false;
             for (unsigned int g = 0; g < ng; g++)
-                do_group[g] = true;
+                groups_todo[g] = g;
+            num_groups_todo = ng;
             tot_outers++;
             expand_cross_section(&d_xs, &d_total_cross_section);
             expand_scattering_cross_section();
@@ -374,7 +393,6 @@ void ocl_iterations_(void)
             // Inner loop
             for (unsigned int i = 0; i < inners; i++)
             {
-
                 tot_inners++;
                 // Compute the inner source
                 compute_inner_source();
@@ -382,15 +400,15 @@ void ocl_iterations_(void)
                 get_scalar_flux_(old_inner_scalar, false);
                 zero_edge_flux_buffers_();
                 // Copy over the list of groups to iterate on
-                err = clEnqueueWriteBuffer(queue[0], d_do_group, CL_FALSE, 0, sizeof(bool)*ng, do_group, 0, NULL, NULL);
-                check_error(err, "Copying d_do_group");
+                err = clEnqueueWriteBuffer(queue[0], d_groups_todo, CL_FALSE, 0, sizeof(unsigned int)*ng, groups_todo, 0, NULL, NULL);
+                check_error(err, "Copying d_groups_todo");
                 // Sweep
 #ifdef TIMING
                 err = clFinish(queue[0]);
                 check_error(err, "Finish queue before t1");
                 double t1 = omp_get_wtime();
 #endif
-                ocl_sweep_();
+                ocl_sweep_(num_groups_todo);
 #ifdef TIMING
                 err = clFinish(queue[0]);
                 check_error(err, "Finish queue before t2");
@@ -413,12 +431,19 @@ void ocl_iterations_(void)
 #endif
                 // Check convergence
                 get_scalar_flux_(new_scalar, true);
-                inner_done = check_convergence(old_inner_scalar, new_scalar, epsi, do_group, true);
+#ifdef TIMING
+		double t4 = omp_get_wtime();
+#endif
+                inner_done = check_convergence(old_inner_scalar, new_scalar, epsi, groups_todo, &num_groups_todo, true);
+#ifdef TIMING
+		double t5 = omp_get_wtime();
+		printf("inner conv test took %lfs\n",t5-t4);
+#endif
                 if (inner_done)
                     break;
             }
             // Check convergence
-            outer_done = check_convergence(old_outer_scalar, new_scalar, 100.0*epsi, do_group, false);
+            outer_done = check_convergence(old_outer_scalar, new_scalar, 100.0*epsi, groups_todo, &num_groups_todo, false);
             if (outer_done && inner_done)
                 break;
         }
@@ -437,5 +462,5 @@ void ocl_iterations_(void)
     free(old_outer_scalar);
     free(new_scalar);
     free(old_inner_scalar);
-    free(do_group);
+    free(groups_todo);
 }

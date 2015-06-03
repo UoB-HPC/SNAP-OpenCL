@@ -248,6 +248,9 @@ void opencl_teardown_(void)
     err = clReleaseMemObject(d_scat_cs);
     check_error(err, "Releasing d_scat_cs buffer");
 
+    err = clReleaseMemObject(d_groups_todo);
+    check_error(err, "Releasing d_groups_todo buffer");
+
     // Release kernels
     for (int i = 0; i < NUM_QUEUES; i++)
     {

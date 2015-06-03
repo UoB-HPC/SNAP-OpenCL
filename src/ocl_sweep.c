@@ -99,7 +99,7 @@ void set_sweep_cell_args(void)
 
         err |= clSetKernelArg(k_sweep_cell[i], 24, sizeof(cl_mem), &d_source);
         err |= clSetKernelArg(k_sweep_cell[i], 25, sizeof(cl_mem), &d_denom);
-        err |= clSetKernelArg(k_sweep_cell[i], 27, sizeof(cl_mem), &d_do_group);
+        err |= clSetKernelArg(k_sweep_cell[i], 27, sizeof(cl_mem), &d_groups_todo);
         check_error(err, "Set sweep_cell kernel args");
     }
 
@@ -109,7 +109,7 @@ void set_sweep_cell_args(void)
 // Kernel: wavefront of cells
 // Work-group: energy group
 // Work-item: angle
-void enqueue_octant(const unsigned int timestep, const unsigned int oct, const unsigned int ndiag, const plane *planes)
+void enqueue_octant(const unsigned int timestep, const unsigned int oct, const unsigned int ndiag, const plane *planes, const unsigned int num_groups_todo)
 {
     // Determine the cell step parameters for the given octant
     // Create the list of octant co-ordinates in order
@@ -138,7 +138,7 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
     cl_int err;
 
     // Set a local worksize if specified by the environment
-    size_t global[2] = {nang * ng , 1};
+    size_t global[2] = {nang * num_groups_todo , 1};
     size_t local_val;
     size_t *local;
     char *local_size = getenv("SNAP_OCL_LOCAL");
@@ -168,6 +168,8 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
         err = clSetKernelArg(k_sweep_cell[qq], 2, sizeof(int), &kstep);
         check_error(err, "Setting octant for sweep_cell kernel");
 
+        err = clSetKernelArg(k_sweep_cell[qq], 28, sizeof(unsigned int), &num_groups_todo);
+        check_error(err, "Setting num_groups argument");
         // Swap the angular flux pointers if necessary
         // Even timesteps: Read flux_in and write to flux_out
         // Odd timesteps: Read flux_out and write to flux_in
@@ -200,9 +202,10 @@ void enqueue_octant(const unsigned int timestep, const unsigned int oct, const u
 }
 
 // Perform a sweep over the grid for all the octants
-void ocl_sweep_(void)
+void ocl_sweep_(unsigned int num_groups_todo)
 {
     cl_int err;
+
 
     // Number of planes in this octant
     unsigned int ndiag = ichunk + ny + nz - 2;
@@ -215,7 +218,7 @@ void ocl_sweep_(void)
 
     for (int o = 0; o < noct; o++)
     {
-        enqueue_octant(global_timestep, o, ndiag, planes);
+        enqueue_octant(global_timestep, o, ndiag, planes, num_groups_todo);
         zero_edge_flux_buffers_();
     }
 

@@ -70,7 +70,7 @@ cl_mem d_lma;
 cl_mem d_g2g_source;
 cl_mem d_scalar_mom;
 cl_mem d_scat_cs;
-cl_mem d_do_group;
+cl_mem d_groups_todo;
 
 // Create an empty buffer to zero out the edge flux arrays
 // Each direction can share it as we make sure that it is
@@ -105,4 +105,4 @@ static void check_build_error(cl_int err, char *msg)
     check_error(err, msg);
 };
 
-void ocl_sweep_(void);
+void ocl_sweep_(unsigned int);

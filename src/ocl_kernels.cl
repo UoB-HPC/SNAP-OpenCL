@@ -96,21 +96,22 @@ __kernel void sweep_cell(
     __global const double * restrict denom,
 
     __global const struct cell * restrict cell_index,
-    __global const bool * restrict do_group
+    __global const unsigned int * restrict groups_todo,
+    const unsigned int num_groups_todo
     )
 {
     // Get indexes for angle and group
     const unsigned int a_idx = get_global_id(0) % nang;
-    const unsigned int g_idx = get_global_id(0) / nang;
+    const unsigned int tmp_g_idx = get_global_id(0) / nang;
     const unsigned int i = (istep > 0) ? cell_index[get_global_id(1)].i : nx - cell_index[get_global_id(1)].i - 1;
     const unsigned int j = (jstep > 0) ? cell_index[get_global_id(1)].j : ny - cell_index[get_global_id(1)].j - 1;
     const unsigned int k = (kstep > 0) ? cell_index[get_global_id(1)].k : nz - cell_index[get_global_id(1)].k - 1;
 
-    if (a_idx >= nang || g_idx >= ng)
+    if (a_idx >= nang || tmp_g_idx >= num_groups_todo)
         return;
 
-    if (!do_group[g_idx])
-        return;
+    const unsigned int g_idx = groups_todo[tmp_g_idx];
+
 
     // Assume transmissive (vacuum boundaries) and that we
     // are sweeping the whole grid so have access to all neighbours

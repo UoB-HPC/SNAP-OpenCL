@@ -230,7 +230,7 @@ void copy_to_device_(
     check_error(err, "Creating scalar_flux buffer");
     zero_scalar_flux();
 
-    d_do_group = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(bool)*ng, NULL, &err);
+    d_groups_todo = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(unsigned int)*ng, NULL, &err);
     check_error(err, "Creating do_group buffer");
 
     // Wait for the data to be on the device before returning
